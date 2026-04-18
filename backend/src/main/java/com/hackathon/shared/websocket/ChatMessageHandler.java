@@ -22,8 +22,9 @@ public class ChatMessageHandler {
   @SendTo("/topic/room/{roomId}")
   public ChatMessageDTO handleMessage(
       ChatMessageDTO payload, @DestinationVariable UUID roomId, Principal principal) {
-    var user = userService.getUserByUsername(principal.getName());
-    Message saved = messageService.sendMessage(roomId, user.getId(), payload.getText());
+    UUID userId = UUID.fromString(principal.getName());
+    var user = userService.getUserById(userId);
+    Message saved = messageService.sendMessage(roomId, userId, payload.getText());
     return ChatMessageDTO.builder()
         .id(saved.getId())
         .roomId(saved.getRoomId())
