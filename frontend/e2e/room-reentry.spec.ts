@@ -51,7 +51,13 @@ test.describe('Room re-entry', () => {
     // First visit — send a message.
     await textarea.fill('first visit hello');
     await page.click('button:has-text("Send")');
-    await expect(page.locator('body')).toContainText('first visit hello', { timeout: 5_000 });
+    // The message renders with a visible author (username) and text.
+    const firstMessageCard = page
+      .locator('div.bg-gray-50')
+      .filter({ hasText: 'first visit hello' })
+      .first();
+    await expect(firstMessageCard).toBeVisible({ timeout: 5_000 });
+    await expect(firstMessageCard).toContainText(u.username);
 
     // Leave the room.
     await page.click('button:has-text("Leave Room")');
@@ -61,6 +67,15 @@ test.describe('Room re-entry', () => {
     await page.click(`text=${roomName}`);
     await page.waitForURL(/.*\/rooms\/[0-9a-f-]{36}$/);
 
+    // Regression check for 'who sent this message?' bug — history load must
+    // include the username, not just the text.
+    const firstMessageAfterReload = page
+      .locator('div.bg-gray-50')
+      .filter({ hasText: 'first visit hello' })
+      .first();
+    await expect(firstMessageAfterReload).toBeVisible({ timeout: 5_000 });
+    await expect(firstMessageAfterReload).toContainText(u.username);
+
     const textarea2 = page.getByPlaceholder(/type a message/i);
     await expect(textarea2).toBeVisible();
 
@@ -68,12 +83,14 @@ test.describe('Room re-entry', () => {
     await textarea2.fill('second visit after re-entry');
     await page.click('button:has-text("Send")');
 
-    // This is the regression check — before the fix, the message would NOT
-    // appear in real time on this re-entry. Assert it shows up without
-    // another page reload.
-    await expect(page.locator('body')).toContainText('second visit after re-entry', {
-      timeout: 5_000,
-    });
+    // Real-time delivery works after re-entry (previous bug) AND the new
+    // message also shows the author.
+    const secondCard = page
+      .locator('div.bg-gray-50')
+      .filter({ hasText: 'second visit after re-entry' })
+      .first();
+    await expect(secondCard).toBeVisible({ timeout: 5_000 });
+    await expect(secondCard).toContainText(u.username);
 
     await ctx.close();
   });
