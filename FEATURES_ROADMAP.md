@@ -56,9 +56,23 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-18-room-moderation-and-invitations.md` (19 tasks across 7 sections — all complete)
 - **Status: COMPLETE**
 
+### Execution #5: App Shell Refactor (Appendix A layout) ✅
+- Top menu (Public Rooms / Contacts / Sessions stub / Profile ▼)
+- Left tree sidebar (Rooms ▸ Public / Private, Contacts, Create room, Search dropdown)
+- Right `RoomMembersPanel` restructured: presence groupings (Online / AFK / Offline, all Offline until Feature #7), admin buttons at bottom (`Invite user`, `Manage room`)
+- `ManageRoomModal` (tabbed: Members / Invitations / Banned / Settings) — owns kick/promote/demote, invitation cancel, unban, delete
+- `/api/search` backend endpoint over public rooms + users (excludes caller / member rooms)
+- `MessageInput` gains an empty `ComposerActions` slot for Features #5/#6
+- `AppSidebar` removed; `App.tsx` nests authenticated routes under a single `AppShell` layout route
+- Playwright lifecycle E2E (`app-shell.spec.ts`, 3 scenarios) + existing suite (8 scenarios) kept green
+- Spec: `docs/superpowers/specs/2026-04-18-app-shell-refactor-design.md`
+- Plan: `docs/superpowers/plans/2026-04-18-app-shell-refactor.md` (12 tasks — all complete)
+- **Status: COMPLETE**
+
 ## Planned Features
 
-### Feature #5: Message Content Enhancements
+### Feature #5 (planned content): Message Content Enhancements
+> Execution note: this now lands AFTER the app shell refactor which claimed the execution #5 slot.
 - Multi-line + emoji (plain text already supported)
 - Replies / quoted messages
 - Message editing with "edited" indicator
@@ -94,6 +108,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 4/8 (Features #1, #2, #3, #4)
-- **In progress:** 0/8
-- **Remaining:** 4/8 (Features #5–#8)
+- **Completed:** 5 execution slots (Features #1, #2, #3, #4, App Shell Refactor)
+- **In progress:** 0
+- **Remaining:** 4 (Message Content, Attachments, Presence/Sessions, Account Management)
