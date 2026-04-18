@@ -28,6 +28,13 @@ public class SecurityConfig {
     http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .exceptionHandling(
+            ex ->
+                ex.authenticationEntryPoint(
+                    (request, response, authException) ->
+                        response.sendError(
+                            jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED,
+                            "Unauthorized")))
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/api/users/register", "/api/users/login")

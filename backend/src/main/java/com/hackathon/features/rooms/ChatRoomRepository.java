@@ -16,4 +16,12 @@ public interface ChatRoomRepository extends JpaRepository<ChatRoom, UUID> {
           + "(SELECT m.roomId FROM RoomMember m WHERE m.userId = :userId) "
           + "ORDER BY r.updatedAt DESC")
   List<ChatRoom> findRoomsWhereUserIsMember(java.util.UUID userId);
+
+  @org.springframework.data.jpa.repository.Query(
+      "SELECT r FROM ChatRoom r "
+          + "WHERE r.visibility = 'public' "
+          + "AND LOWER(r.name) LIKE LOWER(CONCAT('%', :q, '%')) "
+          + "AND r.id NOT IN (SELECT m.roomId FROM RoomMember m WHERE m.userId = :callerId) "
+          + "ORDER BY r.name")
+  List<ChatRoom> searchPublicRoomsNotMember(String q, UUID callerId, Pageable pageable);
 }
