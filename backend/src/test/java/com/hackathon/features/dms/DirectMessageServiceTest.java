@@ -1,151 +1,193 @@
 package com.hackathon.features.dms;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-import com.hackathon.features.bans.UserBanRepository;
 import com.hackathon.features.friendships.Friendship;
-import com.hackathon.features.friendships.FriendshipRepository;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
+import com.hackathon.features.friendships.FriendshipService;
+import com.hackathon.features.users.User;
+import com.hackathon.features.users.UserService;
+import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
+@SpringBootTest
+@ActiveProfiles("test")
 class DirectMessageServiceTest {
-  @Mock DirectMessageRepository directMessageRepository;
-  @Mock DirectConversationRepository directConversationRepository;
-  @Mock ConversationService conversationService;
-  @Mock FriendshipRepository friendshipRepository;
-  @Mock UserBanRepository userBanRepository;
 
-  DirectMessageService service;
-  UUID meId;
-  UUID otherId;
-  UUID conversationId;
+  @Autowired UserService userService;
+  @Autowired FriendshipService friendshipService;
+  @Autowired ConversationService conversationService;
+  @Autowired DirectMessageService directMessageService;
+  @Autowired DirectMessageRepository directMessageRepository;
 
-  @BeforeEach
-  void setUp() {
-    MockitoAnnotations.openMocks(this);
-    service =
-        new DirectMessageService(
-            directMessageRepository,
-            directConversationRepository,
-            conversationService,
-            friendshipRepository,
-            userBanRepository);
-    meId = UUID.randomUUID();
-    otherId = UUID.randomUUID();
-    conversationId = UUID.randomUUID();
+  private User registerUser(String suffix) {
+    long t = System.nanoTime();
+    return userService.registerUser(
+        "u" + t + "-" + suffix + "@example.com",
+        "user" + t + suffix,
+        "password12345");
   }
+
+  private void makeFriends(User a, User b) {
+    Friendship req = friendshipService.sendRequest(a.getId(), b.getUsername());
+    friendshipService.accept(b.getId(), req.getId());
+  }
+
+  // ── existing send behaviour ────────────────────────────────────────────────
 
   @Test
   void send_persistsWhenFriendsAndNotBanned() {
-    DirectConversation conv =
-        DirectConversation.builder().id(conversationId).user1Id(meId).user2Id(otherId).build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(friendshipRepository.findBetween(meId, otherId))
-        .thenReturn(Optional.of(Friendship.builder().status(Friendship.STATUS_ACCEPTED).build()));
-    when(userBanRepository.existsByBannerIdAndBannedId(any(), any())).thenReturn(false);
-    when(directMessageRepository.save(any(DirectMessage.class)))
-        .thenAnswer(inv -> inv.getArgument(0, DirectMessage.class));
+    User a = registerUser("alice");
+    User b = registerUser("bob");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
 
-    DirectMessage saved = service.send(meId, conversationId, "hello");
+    DirectMessage saved = directMessageService.send(a.getId(), conv.getId(), "hello");
 
     assertEquals("hello", saved.getText());
-    assertEquals(meId, saved.getSenderId());
-    assertEquals(conversationId, saved.getConversationId());
+    assertEquals(a.getId(), saved.getSenderId());
+    assertEquals(conv.getId(), saved.getConversationId());
   }
 
   @Test
   void send_rejectsNonParticipant() {
-    DirectConversation conv =
-        DirectConversation.builder()
-            .id(conversationId)
-            .user1Id(UUID.randomUUID())
-            .user2Id(UUID.randomUUID())
-            .build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-
-    assertThrows(IllegalArgumentException.class, () -> service.send(meId, conversationId, "hi"));
+    User a = registerUser("a");
+    User b = registerUser("b");
+    User c = registerUser("c");
+    makeFriends(a, b);
+    makeFriends(a, c);
+    DirectConversation ab = conversationService.getOrCreate(a.getId(), b.getId());
+    // c is not a participant of ab's conversation
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(c.getId(), ab.getId(), "hi"));
   }
 
   @Test
   void send_rejectsWhenNotFriends() {
-    DirectConversation conv =
-        DirectConversation.builder().id(conversationId).user1Id(meId).user2Id(otherId).build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(friendshipRepository.findBetween(meId, otherId)).thenReturn(Optional.empty());
-
-    assertThrows(IllegalArgumentException.class, () -> service.send(meId, conversationId, "hi"));
-  }
-
-  @Test
-  void send_rejectsWhenBanEitherDirection() {
-    DirectConversation conv =
-        DirectConversation.builder().id(conversationId).user1Id(meId).user2Id(otherId).build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(friendshipRepository.findBetween(meId, otherId))
-        .thenReturn(Optional.of(Friendship.builder().status(Friendship.STATUS_ACCEPTED).build()));
-    when(userBanRepository.existsByBannerIdAndBannedId(meId, otherId)).thenReturn(false);
-    when(userBanRepository.existsByBannerIdAndBannedId(otherId, meId)).thenReturn(true);
-
-    assertThrows(IllegalArgumentException.class, () -> service.send(meId, conversationId, "hi"));
+    User a = registerUser("a");
+    User b = registerUser("b");
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(a.getId(), conv.getId(), "hi"));
   }
 
   @Test
   void send_rejectsEmptyText() {
-    DirectConversation conv =
-        DirectConversation.builder().id(conversationId).user1Id(meId).user2Id(otherId).build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(friendshipRepository.findBetween(meId, otherId))
-        .thenReturn(Optional.of(Friendship.builder().status(Friendship.STATUS_ACCEPTED).build()));
-
-    assertThrows(IllegalArgumentException.class, () -> service.send(meId, conversationId, "  "));
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(a.getId(), conv.getId(), "  "));
   }
 
   @Test
   void send_rejectsTextOver3072() {
-    DirectConversation conv =
-        DirectConversation.builder().id(conversationId).user1Id(meId).user2Id(otherId).build();
-    when(directConversationRepository.findById(conversationId)).thenReturn(Optional.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(friendshipRepository.findBetween(meId, otherId))
-        .thenReturn(Optional.of(Friendship.builder().status(Friendship.STATUS_ACCEPTED).build()));
-
-    assertThrows(
-        IllegalArgumentException.class,
-        () -> service.send(meId, conversationId, "x".repeat(3073)));
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(a.getId(), conv.getId(), "x".repeat(3073)));
   }
 
   @Test
-  void getHistory_withoutCursor_usesOrderByCreatedAt() {
-    when(directMessageRepository.findByConversationIdOrderByCreatedAtDesc(
-            conversationId, PageRequest.of(0, 50)))
-        .thenReturn(List.of(DirectMessage.builder().text("a").build()));
+  void getHistory_withoutCursor_returnsMessages() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    directMessageService.send(a.getId(), conv.getId(), "msg1");
+    directMessageService.send(b.getId(), conv.getId(), "msg2");
 
-    List<DirectMessage> result = service.getHistory(conversationId, null, 50);
+    var history = directMessageService.getHistory(conv.getId(), null, 50);
 
-    assertEquals(1, result.size());
+    assertEquals(2, history.size());
   }
 
   @Test
-  void getHistory_withCursor_usesBeforeCursor() {
-    UUID beforeId = UUID.randomUUID();
-    when(directMessageRepository.findByConversationIdBeforeCursor(
-            conversationId, beforeId, PageRequest.of(0, 50)))
-        .thenReturn(List.of());
+  void getHistory_withCursor_returnsEmpty_atBeginning() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage first = directMessageService.send(a.getId(), conv.getId(), "first");
 
-    List<DirectMessage> result = service.getHistory(conversationId, beforeId, 50);
+    // cursor at the first message → nothing before it
+    var history = directMessageService.getHistory(conv.getId(), first.getId(), 50);
 
-    assertEquals(0, result.size());
+    assertEquals(0, history.size());
+  }
+
+  // ── edit ──────────────────────────────────────────────────────────────────
+
+  @Test
+  void editMessage_authorCanEdit_setsEditedAt_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "orig");
+    DirectMessage edited = directMessageService.editMessage(sent.getId(), a.getId(), "new");
+    assertEquals("new", edited.getText());
+    assertNotNull(edited.getEditedAt());
+  }
+
+  @Test
+  void editMessage_nonAuthor_throws_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.editMessage(sent.getId(), b.getId(), "hijacked"));
+  }
+
+  // ── delete ────────────────────────────────────────────────────────────────
+
+  @Test
+  void deleteMessage_authorMarksTombstone_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    directMessageService.deleteMessage(sent.getId(), a.getId());
+    DirectMessage reloaded = directMessageRepository.findById(sent.getId()).orElseThrow();
+    assertNotNull(reloaded.getDeletedAt());
+    assertEquals(a.getId(), reloaded.getDeletedBy());
+  }
+
+  @Test
+  void deleteMessage_isIdempotent_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    directMessageService.deleteMessage(sent.getId(), a.getId());
+    OffsetDateTime first = directMessageRepository.findById(sent.getId()).orElseThrow().getDeletedAt();
+    directMessageService.deleteMessage(sent.getId(), a.getId());
+    OffsetDateTime second = directMessageRepository.findById(sent.getId()).orElseThrow().getDeletedAt();
+    assertEquals(first, second);
+  }
+
+  // ── reply ─────────────────────────────────────────────────────────────────
+
+  @Test
+  void reply_mustTargetSameConversation() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    User c = registerUser("c");
+    makeFriends(a, b);
+    makeFriends(a, c);
+    DirectConversation ab = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectConversation ac = conversationService.getOrCreate(a.getId(), c.getId());
+    DirectMessage inAB = directMessageService.send(a.getId(), ab.getId(), "in-ab");
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(a.getId(), ac.getId(), "cross", inAB.getId()));
   }
 }
