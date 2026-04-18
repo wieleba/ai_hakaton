@@ -26,4 +26,6 @@ public interface FriendshipRepository extends JpaRepository<Friendship, UUID> {
           + "((f.requesterId = :a AND f.addresseeId = :b) OR "
           + " (f.requesterId = :b AND f.addresseeId = :a))")
   Optional<Friendship> findBetween(UUID a, UUID b);
+
+  void deleteByRequesterIdAndAddresseeId(UUID requesterId, UUID addresseeId);
 }
