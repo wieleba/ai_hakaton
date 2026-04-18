@@ -30,7 +30,8 @@ public class ChatRoomController {
   public ResponseEntity<ChatRoom> createRoom(
       @RequestBody CreateRoomRequest request, Authentication authentication) {
     ChatRoom room =
-        chatRoomService.createRoom(request.name(), request.description(), currentUserId(authentication));
+        chatRoomService.createRoom(
+            request.name(), request.description(), currentUserId(authentication), null);
     return ResponseEntity.ok(room);
   }
 

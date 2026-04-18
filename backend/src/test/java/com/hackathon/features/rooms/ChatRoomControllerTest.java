@@ -56,7 +56,7 @@ class ChatRoomControllerTest {
     room.setOwnerId(UUID.randomUUID());
     room.setVisibility("public");
 
-    when(chatRoomService.createRoom(eq("test-room"), isNull(), any(UUID.class))).thenReturn(room);
+    when(chatRoomService.createRoom(eq("test-room"), isNull(), any(UUID.class), isNull())).thenReturn(room);
 
     mockMvc.perform(post("/api/rooms")
         .with(csrf())

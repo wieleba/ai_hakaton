@@ -10,6 +10,7 @@ import com.hackathon.features.messages.MessageService;
 import com.hackathon.features.rooms.ChatRoom;
 import com.hackathon.features.rooms.ChatRoomRepository;
 import com.hackathon.features.rooms.ChatRoomService;
+import com.hackathon.features.rooms.RoomBanRepository;
 import com.hackathon.features.rooms.RoomMember;
 import com.hackathon.features.rooms.RoomMemberRepository;
 import com.hackathon.features.rooms.RoomMemberService;
@@ -40,6 +41,7 @@ class ChatFlowIntegrationTest {
     @Mock private RoomMemberRepository roomMemberRepository;
     @Mock private MessageRepository messageRepository;
     @Mock private UserService userService;
+    @Mock private RoomBanRepository roomBanRepository;
 
     // ---- Services (real, wired by Mockito) ----
     @InjectMocks private RoomMemberService roomMemberService;
@@ -53,7 +55,7 @@ class ChatFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService);
+        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
         messageService = new MessageService(messageRepository, roomMemberService);
 
         ownerId = UUID.randomUUID();
@@ -117,7 +119,7 @@ class ChatFlowIntegrationTest {
                 .build();
         when(chatRoomRepository.save(any(ChatRoom.class))).thenReturn(saved);
 
-        ChatRoom result = chatRoomService.createRoom("general", "General chat", ownerId);
+        ChatRoom result = chatRoomService.createRoom("general", "General chat", ownerId, null);
 
         assertNotNull(result);
         assertEquals("general", result.getName());
@@ -130,7 +132,7 @@ class ChatFlowIntegrationTest {
         when(chatRoomRepository.existsByName("general")).thenReturn(true);
         assertThrows(
                 IllegalArgumentException.class,
-                () -> chatRoomService.createRoom("general", "desc", ownerId));
+                () -> chatRoomService.createRoom("general", "desc", ownerId, null));
     }
 
     @Test
@@ -327,7 +329,7 @@ class ChatFlowIntegrationTest {
                 .build();
         when(chatRoomRepository.save(any(ChatRoom.class))).thenReturn(room);
 
-        ChatRoom created = chatRoomService.createRoom("flow-room", "E2E flow room", ownerId);
+        ChatRoom created = chatRoomService.createRoom("flow-room", "E2E flow room", ownerId, null);
         assertEquals("flow-room", created.getName());
 
         // Step 2: Second user joins the room
