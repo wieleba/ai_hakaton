@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 /**
  * Integration test for the full chat flow: create room → join → send message → read history.
@@ -42,6 +43,7 @@ class ChatFlowIntegrationTest {
     @Mock private MessageRepository messageRepository;
     @Mock private UserService userService;
     @Mock private RoomBanRepository roomBanRepository;
+    @Mock private SimpMessagingTemplate messagingTemplate;
 
     // ---- Services (real, wired by Mockito) ----
     @InjectMocks private RoomMemberService roomMemberService;
@@ -56,7 +58,7 @@ class ChatFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
-        messageService = new MessageService(messageRepository, roomMemberService);
+        messageService = new MessageService(messageRepository, roomMemberService, userService, messagingTemplate);
 
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();
