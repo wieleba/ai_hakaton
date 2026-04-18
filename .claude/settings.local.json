@@ -24,7 +24,12 @@
       "Bash(npm install *)",
       "Bash(git commit *)",
       "Bash(npm run *)",
-      "Bash(git tag *)"
+      "Bash(git tag *)",
+      "Bash(docker-compose --version)",
+      "Bash(curl -v http://localhost:3000/)",
+      "Bash(curl -s http://localhost:3000/)",
+      "Bash(curl -s http://localhost:8080/api/users/login -X POST -H \"Content-Type: application/json\" -d '{}')",
+      "Bash(curl -v http://localhost:8080/api/users/login -X POST -H \"Content-Type: application/json\" -d '{}')"
     ]
   }
 }

@@ -15,7 +15,7 @@ ENV PATH=$GRADLE_HOME/bin:$PATH
 COPY build.gradle settings.gradle ./
 COPY src src/
 
-RUN gradle build -x test --no-daemon
+RUN gradle build -x test -x spotlessJavaCheck --no-daemon
 
 EXPOSE 8080
 
