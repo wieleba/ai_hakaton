@@ -1,30 +1,37 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { friendshipService } from '../services/friendshipService';
+import { roomService } from '../services/roomService';
+import type { ChatRoom } from '../types/room';
 import type { RoomMemberView } from '../types/roomModeration';
 import { useRoomMembersWithRole } from '../hooks/useRoomMembersWithRole';
-import { useRoomAdminActions } from '../hooks/useRoomAdminActions';
 import { InviteUserModal } from './InviteUserModal';
+import { ManageRoomModal } from './ManageRoomModal';
+import { useRoomAdminActions } from '../hooks/useRoomAdminActions';
 
 interface Props {
   roomId: string;
   currentUserId: string;
-  roomVisibility?: 'public' | 'private';
-  onOpenBans?: () => void;
 }
 
-export const RoomMembersPanel: React.FC<Props> = ({
-  roomId,
-  currentUserId,
-  roomVisibility,
-  onOpenBans,
-}) => {
+export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => {
   const { members, isAdmin, reload } = useRoomMembersWithRole(roomId, currentUserId);
+  const [room, setRoom] = useState<ChatRoom | null>(null);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [isInviteOpen, setInviteOpen] = useState(false);
-  const { kick, promote, demote, invite } = useRoomAdminActions(roomId);
+  const [isManageOpen, setManageOpen] = useState(false);
+  const { invite } = useRoomAdminActions(roomId);
 
   useEffect(() => {
-    friendshipService.listFriends().then((fs) => setFriendIds(new Set(fs.map((f) => f.userId))));
+    roomService
+      .getRoomById(roomId)
+      .then(setRoom)
+      .catch((e) => console.error('Failed to load room', e));
+  }, [roomId]);
+
+  useEffect(() => {
+    friendshipService
+      .listFriends()
+      .then((fs) => setFriendIds(new Set(fs.map((f) => f.userId))));
   }, []);
 
   const sendRequest = useCallback(async (username: string, userId: string) => {
@@ -35,21 +42,6 @@ export const RoomMembersPanel: React.FC<Props> = ({
       console.error('Friend request failed', e);
     }
   }, []);
-
-  const doKick = async (userId: string) => {
-    await kick(userId);
-    await reload();
-  };
-
-  const doPromote = async (userId: string) => {
-    await promote(userId);
-    await reload();
-  };
-
-  const doDemote = async (userId: string) => {
-    await demote(userId);
-    await reload();
-  };
 
   const doInvite = async (username: string) => {
     await invite(username);
@@ -65,87 +57,99 @@ export const RoomMembersPanel: React.FC<Props> = ({
     return null;
   };
 
-  return (
-    <aside className="w-64 border-l bg-white p-4 overflow-y-auto">
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-semibold">Members</h3>
-        {isAdmin && (
-          <div className="flex gap-1">
-            {roomVisibility === 'private' && (
-              <button
-                onClick={() => setInviteOpen(true)}
-                className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
-              >
-                Invite
-              </button>
-            )}
-            {onOpenBans && (
-              <button
-                onClick={onOpenBans}
-                className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
-              >
-                Bans
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+  // Presence groupings — all members are Offline until Feature #7 lights them up.
+  const online: RoomMemberView[] = [];
+  const afk: RoomMemberView[] = [];
+  const offline: RoomMemberView[] = members;
 
-      <ul className="space-y-2">
-        {members.map((m) => {
+  const renderGroup = (title: string, dot: string, list: RoomMemberView[]) => (
+    <div>
+      <div className="text-xs font-semibold text-gray-500 uppercase mt-3 mb-1">
+        {title} ({list.length})
+      </div>
+      <ul className="space-y-1">
+        {list.map((m) => {
           const isMe = m.userId === currentUserId;
           const isFriend = friendIds.has(m.userId);
           return (
-            <li key={m.userId} className="flex flex-col text-sm">
-              <div className="flex justify-between items-center">
-                <span className="flex items-center gap-1">
+            <li key={m.userId} className="flex justify-between items-center text-sm">
+              <span className="flex items-center gap-1 truncate">
+                <span className="text-gray-400">{dot}</span>
+                <span className="truncate">
                   {m.username}
                   {isMe && ' (you)'}
-                  {roleBadge(m)}
                 </span>
-                {!isMe && !isFriend && (
-                  <button
-                    onClick={() => sendRequest(m.username, m.userId)}
-                    className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
-                  >
-                    Add friend
-                  </button>
-                )}
-              </div>
-              {isAdmin && !isMe && !m.isOwner && (
-                <div className="flex gap-1 mt-1 text-xs">
-                  <button
-                    onClick={() => doKick(m.userId)}
-                    className="px-2 py-0.5 border border-red-400 text-red-600 rounded hover:bg-red-50"
-                  >
-                    Kick
-                  </button>
-                  {m.role === 'admin' ? (
-                    <button
-                      onClick={() => doDemote(m.userId)}
-                      className="px-2 py-0.5 border rounded hover:bg-gray-100"
-                    >
-                      Demote
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => doPromote(m.userId)}
-                      className="px-2 py-0.5 border rounded hover:bg-gray-100"
-                    >
-                      Promote
-                    </button>
-                  )}
-                </div>
+                {roleBadge(m)}
+              </span>
+              {!isMe && !isFriend && (
+                <button
+                  onClick={() => sendRequest(m.username, m.userId)}
+                  className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
+                >
+                  Add friend
+                </button>
               )}
             </li>
           );
         })}
       </ul>
+    </div>
+  );
+
+  return (
+    <aside className="w-72 border-l bg-white p-4 overflow-y-auto">
+      <div>
+        <h3 className="font-semibold text-lg truncate">{room?.name ?? 'Loading\u2026'}</h3>
+        {room && (
+          <span
+            className={`text-xs px-2 py-0.5 rounded ${
+              room.visibility === 'private'
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-green-100 text-green-700'
+            }`}
+          >
+            {room.visibility}
+          </span>
+        )}
+      </div>
+
+      {renderGroup('Online', '●', online)}
+      {renderGroup('AFK', '◐', afk)}
+      {renderGroup('Offline', '○', offline)}
+
+      {isAdmin && (
+        <div className="mt-4 pt-4 border-t space-y-2">
+          {room?.visibility === 'private' && (
+            <button
+              onClick={() => setInviteOpen(true)}
+              className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm"
+            >
+              Invite user
+            </button>
+          )}
+          <button
+            onClick={() => setManageOpen(true)}
+            className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm"
+          >
+            Manage room
+          </button>
+        </div>
+      )}
 
       <InviteUserModal
         isOpen={isInviteOpen}
         onClose={() => setInviteOpen(false)}
         onInvite={doInvite}
+      />
+      <ManageRoomModal
+        isOpen={isManageOpen}
+        onClose={() => {
+          setManageOpen(false);
+          reload();
+        }}
+        roomId={roomId}
+        currentUserId={currentUserId}
+        room={room}
       />
     </aside>
   );
