@@ -3,11 +3,12 @@ package com.hackathon.shared.security;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 import javax.crypto.SecretKey;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
@@ -17,26 +18,36 @@ public class JwtTokenProvider {
   @Value("${jwt.expiration:86400000}")
   private long jwtExpiration;
 
-  public String generateToken(Integer userId, String email) {
+  public String generateToken(UUID userId, String username) {
     SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     return Jwts.builder()
         .subject(userId.toString())
-        .claim("email", email)
+        .claim("username", username)
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
         .signWith(key, SignatureAlgorithm.HS256)
         .compact();
   }
 
-  public Integer getUserIdFromToken(String token) {
+  public UUID getUserIdFromToken(String token) {
     SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-    return Integer.parseInt(
+    return UUID.fromString(
         Jwts.parser()
             .verifyWith(key)
             .build()
             .parseSignedClaims(token)
             .getPayload()
             .getSubject());
+  }
+
+  public String getUsernameFromToken(String token) {
+    SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+    return Jwts.parser()
+        .verifyWith(key)
+        .build()
+        .parseSignedClaims(token)
+        .getPayload()
+        .get("username", String.class);
   }
 
   public boolean validateToken(String token) {
