@@ -29,9 +29,13 @@ export const RoomListPage: React.FC = () => {
     }
   };
 
-  const handleCreateRoom = async (name: string, description?: string) => {
+  const handleCreateRoom = async (
+    name: string,
+    description?: string,
+    visibility?: 'public' | 'private',
+  ) => {
     try {
-      const newRoom = await roomService.createRoom(name, description);
+      const newRoom = await roomService.createRoom(name, description, visibility);
       navigate(`/rooms/${newRoom.id}`);
     } catch (err: any) {
       throw new Error(err.message);
