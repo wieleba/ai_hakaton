@@ -13,6 +13,7 @@ import com.hackathon.features.rooms.ChatRoomService;
 import com.hackathon.features.rooms.RoomMember;
 import com.hackathon.features.rooms.RoomMemberRepository;
 import com.hackathon.features.rooms.RoomMemberService;
+import com.hackathon.features.users.UserService;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,7 @@ class ChatFlowIntegrationTest {
     @Mock private ChatRoomRepository chatRoomRepository;
     @Mock private RoomMemberRepository roomMemberRepository;
     @Mock private MessageRepository messageRepository;
+    @Mock private UserService userService;
 
     // ---- Services (real, wired by Mockito) ----
     @InjectMocks private RoomMemberService roomMemberService;
@@ -51,7 +53,7 @@ class ChatFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService);
+        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService);
         messageService = new MessageService(messageRepository, roomMemberService);
 
         ownerId = UUID.randomUUID();

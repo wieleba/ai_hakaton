@@ -30,4 +30,8 @@ export const roomService = {
     const response = await axios.get(`${API_BASE}/${roomId}`);
     return response.data;
   },
+
+  listMembers: async (roomId: string): Promise<{ userId: string; username: string }[]> => {
+    return (await axios.get(`${API_BASE}/${roomId}/members`)).data;
+  },
 };

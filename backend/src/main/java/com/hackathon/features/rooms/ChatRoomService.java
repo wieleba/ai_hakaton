@@ -1,5 +1,8 @@
 package com.hackathon.features.rooms;
 
+import com.hackathon.features.users.User;
+import com.hackathon.features.users.UserService;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -12,6 +15,7 @@ import java.util.UUID;
 public class ChatRoomService {
   private final ChatRoomRepository chatRoomRepository;
   private final RoomMemberService roomMemberService;
+  private final UserService userService;
 
   public ChatRoom createRoom(String name, String description, UUID userId) {
     if (chatRoomRepository.existsByName(name)) {
@@ -56,5 +60,11 @@ public class ChatRoomService {
   public ChatRoom getRoomById(UUID roomId) {
     return chatRoomRepository.findById(roomId)
         .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+  }
+
+  public List<User> listMembers(UUID roomId) {
+    return roomMemberService.getMembers(roomId).stream()
+        .map(userId -> userService.getUserById(userId))
+        .toList();
   }
 }

@@ -4,6 +4,7 @@ import static org.instancio.Instancio.create;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.hackathon.features.users.UserService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,13 +15,14 @@ import org.mockito.MockitoAnnotations;
 class ChatRoomServiceTest {
   @Mock private ChatRoomRepository chatRoomRepository;
   @Mock private RoomMemberService roomMemberService;
+  @Mock private UserService userService;
 
   private ChatRoomService service;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
-    service = new ChatRoomService(chatRoomRepository, roomMemberService);
+    service = new ChatRoomService(chatRoomRepository, roomMemberService, userService);
   }
 
   @Test

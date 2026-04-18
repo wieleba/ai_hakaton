@@ -52,4 +52,14 @@ public class ChatRoomController {
     chatRoomService.leaveRoom(id, currentUserId(authentication));
     return ResponseEntity.ok().build();
   }
+
+  @GetMapping("/{id}/members")
+  public ResponseEntity<java.util.List<RoomMemberView>> listMembers(@PathVariable UUID id) {
+    return ResponseEntity.ok(
+        chatRoomService.listMembers(id).stream()
+            .map(u -> new RoomMemberView(u.getId(), u.getUsername()))
+            .toList());
+  }
+
+  record RoomMemberView(java.util.UUID userId, String username) {}
 }
