@@ -69,16 +69,21 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-18-app-shell-refactor.md` (12 tasks — all complete)
 - **Status: COMPLETE**
 
-## Planned Features
+### Feature #5 (content): Message Content Enhancements ✅
+- Reply / quote-to-message — flat `reply_to_id` reference; quote header with author + 100-char preview; `[deleted]` placeholder when parent is soft-deleted
+- Author edit with `(edited)` indicator — author-only; blocked on tombstone; `editedAt` timestamp on the DTO
+- Author soft-delete — author-only; idempotent; renders as muted italic `Message deleted`; original text retained in DB for audit
+- Applies uniformly to room messages and direct messages (same schema delta, same service methods, mirrored DTOs)
+- WebSocket payload promoted to tagged union `{type: CREATED | EDITED | DELETED, message}` on both `/topic/room/{roomId}` and `/user/{uuid}/queue/dms`
+- Frontend: `MessageItem` extraction, `MessageActionsMenu` hover bar, `ReplyPill` composer chip, `InlineMessageEditor`, `ComposerActions` slot finally used
+- Multi-line + Unicode emoji already worked (native textarea input)
+- Backend: V5 migration + 178-test backend suite green (new `MessageContentFlowIntegrationTest` for rooms + DMs)
+- Playwright: 12-scenario suite green, including new `message-content.spec.ts` two-browser lifecycle
+- Spec: `docs/superpowers/specs/2026-04-18-message-content-design.md`
+- Plan: `docs/superpowers/plans/2026-04-18-message-content.md` (13 tasks — all complete)
+- **Status: COMPLETE**
 
-### Feature #5 (planned content): Message Content Enhancements
-> Execution note: this now lands AFTER the app shell refactor which claimed the execution #5 slot.
-- Multi-line + emoji (plain text already supported)
-- Replies / quoted messages
-- Message editing with "edited" indicator
-- Message deletion (by author or room admin)
-- Applies to both rooms and DMs
-- **Status: TODO**
+## Planned Features
 
 ### Feature #6: Attachments (File & Image Sharing)
 - Upload images and files (rooms + DMs)
@@ -108,6 +113,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 5 execution slots (Features #1, #2, #3, #4, App Shell Refactor)
+- **Completed:** 6 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content)
 - **In progress:** 0
-- **Remaining:** 4 (Message Content, Attachments, Presence/Sessions, Account Management)
+- **Remaining:** 3 (Attachments, Presence/Sessions, Account Management)
