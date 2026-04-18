@@ -70,7 +70,8 @@ gradle/                 # Gradle wrapper and scripts
 ## Testing
 
 - Write unit tests for business logic
-- Integration tests for repositories
+- Integration tests use testcontainers with real PostgreSQL (not H2)
+- Test database configured with `ddl-auto=validate` and Flyway migrations
 - Use `@SpringBootTest` for integration tests
 - Mockito for dependencies
 
