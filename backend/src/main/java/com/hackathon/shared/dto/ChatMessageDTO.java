@@ -1,6 +1,6 @@
 package com.hackathon.shared.dto;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,5 +17,5 @@ public class ChatMessageDTO {
   private UUID userId;
   private String username;
   private String text;
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 }

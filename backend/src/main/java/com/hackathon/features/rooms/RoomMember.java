@@ -7,7 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -31,5 +31,5 @@ public class RoomMember {
 
   @CreationTimestamp
   @Column(name = "joined_at", nullable = false, updatable = false)
-  private LocalDateTime joinedAt;
+  private OffsetDateTime joinedAt;
 }

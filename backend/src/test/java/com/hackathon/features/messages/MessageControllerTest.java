@@ -7,9 +7,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.hackathon.TestSecurityConfig;
-import java.time.LocalDateTime;
+import com.hackathon.features.users.User;
+import com.hackathon.features.users.UserService;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +31,14 @@ class MessageControllerTest {
   @Autowired private MockMvc mockMvc;
 
   @MockBean private MessageService messageService;
+  @MockBean private UserService userService;
+
+  @BeforeEach
+  void setUp() {
+    UUID testUserId = UUID.randomUUID();
+    when(userService.getUserByUsername("user"))
+        .thenReturn(User.builder().id(testUserId).username("user").build());
+  }
 
   @Test
   @WithMockUser
@@ -36,7 +47,7 @@ class MessageControllerTest {
     Message msg = new Message();
     msg.setId(UUID.randomUUID());
     msg.setText("msg1");
-    msg.setCreatedAt(LocalDateTime.now());
+    msg.setCreatedAt(OffsetDateTime.now());
 
     when(messageService.getMessageHistory(roomId, null, 50)).thenReturn(List.of(msg));
 

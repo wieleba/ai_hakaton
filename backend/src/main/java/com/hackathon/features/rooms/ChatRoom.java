@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -36,9 +36,9 @@ public class ChatRoom {
 
   @CreationTimestamp
   @Column(nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   @UpdateTimestamp
   @Column(nullable = false)
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 }

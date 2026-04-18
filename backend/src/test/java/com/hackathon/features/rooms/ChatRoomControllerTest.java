@@ -8,8 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hackathon.TestSecurityConfig;
+import com.hackathon.features.users.User;
+import com.hackathon.features.users.UserService;
 import java.util.UUID;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -32,6 +35,16 @@ class ChatRoomControllerTest {
   @Autowired private ObjectMapper objectMapper;
 
   @MockBean private ChatRoomService chatRoomService;
+  @MockBean private UserService userService;
+
+  @BeforeEach
+  void setUp() {
+    UUID testUserId = UUID.randomUUID();
+    when(userService.getUserByUsername("user"))
+        .thenReturn(User.builder().id(testUserId).username("user").build());
+    when(userService.getUserByUsername("testuser"))
+        .thenReturn(User.builder().id(testUserId).username("testuser").build());
+  }
 
   @Test
   @WithMockUser(username = "testuser")

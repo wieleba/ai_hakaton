@@ -13,7 +13,7 @@ import com.hackathon.features.rooms.ChatRoomService;
 import com.hackathon.features.rooms.RoomMember;
 import com.hackathon.features.rooms.RoomMemberRepository;
 import com.hackathon.features.rooms.RoomMemberService;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -238,7 +238,7 @@ class ChatFlowIntegrationTest {
                 .roomId(roomId)
                 .userId(ownerId)
                 .text("Hello world")
-                .createdAt(LocalDateTime.now())
+                .createdAt(OffsetDateTime.now())
                 .build();
         when(messageRepository.save(any(Message.class))).thenReturn(saved);
 
