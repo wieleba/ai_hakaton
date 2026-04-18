@@ -8,7 +8,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "users")
@@ -18,8 +19,8 @@ import java.time.LocalDateTime;
 @Builder
 public class User {
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
-  private Integer id;
+  @GeneratedValue(strategy = GenerationType.UUID)
+  private UUID id;
 
   @Column(unique = true, nullable = false)
   private String username;
@@ -27,14 +28,14 @@ public class User {
   @Column(unique = true, nullable = false)
   private String email;
 
-  @Column(nullable = false)
+  @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  private OffsetDateTime createdAt;
 
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
-  private LocalDateTime updatedAt;
+  private OffsetDateTime updatedAt;
 }
