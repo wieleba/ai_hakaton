@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,7 +13,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import java.util.Optional;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -22,11 +23,13 @@ class UserServiceTest {
   @InjectMocks private UserService userService;
 
   private User testUser;
+  private UUID testUserId;
 
   @BeforeEach
   void setUp() {
+    testUserId = UUID.randomUUID();
     testUser = new User();
-    testUser.setId(1);
+    testUser.setId(testUserId);
     testUser.setEmail("test@example.com");
     testUser.setUsername("testuser");
     testUser.setPasswordHash("hashedpassword");
@@ -39,8 +42,9 @@ class UserServiceTest {
     String password = "password123";
     String hashedPassword = "hashedpassword";
 
+    UUID savedUserId = UUID.randomUUID();
     User savedUser = new User();
-    savedUser.setId(1);
+    savedUser.setId(savedUserId);
     savedUser.setEmail(email);
     savedUser.setUsername(username);
     savedUser.setPasswordHash(hashedPassword);
@@ -128,9 +132,9 @@ class UserServiceTest {
 
   @Test
   void testGetUserById_Success() {
-    when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+    when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
 
-    User result = userService.getUserById(1);
+    User result = userService.getUserById(testUserId);
 
     assertNotNull(result);
     assertEquals("testuser", result.getUsername());
@@ -138,8 +142,9 @@ class UserServiceTest {
 
   @Test
   void testGetUserById_NotFound() {
-    when(userRepository.findById(999)).thenReturn(Optional.empty());
+    UUID unknownId = UUID.randomUUID();
+    when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
 
-    assertThrows(IllegalArgumentException.class, () -> userService.getUserById(999));
+    assertThrows(IllegalArgumentException.class, () -> userService.getUserById(unknownId));
   }
 }

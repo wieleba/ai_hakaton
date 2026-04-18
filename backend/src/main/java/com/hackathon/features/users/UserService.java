@@ -1,5 +1,6 @@
 package com.hackathon.features.users;
 
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,11 +19,12 @@ public class UserService {
       throw new IllegalArgumentException("Username already exists");
     }
 
-    User user = User.builder()
-        .email(email)
-        .username(username)
-        .passwordHash(passwordEncoder.encode(password))
-        .build();
+    User user =
+        User.builder()
+            .email(email)
+            .username(username)
+            .passwordHash(passwordEncoder.encode(password))
+            .build();
 
     return userRepository.save(user);
   }
@@ -40,9 +42,15 @@ public class UserService {
     return user;
   }
 
-  public User getUserById(Integer userId) {
+  public User getUserById(UUID userId) {
     return userRepository
         .findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+  }
+
+  public User getUserByUsername(String username) {
+    return userRepository
+        .findByUsername(username)
         .orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
 }

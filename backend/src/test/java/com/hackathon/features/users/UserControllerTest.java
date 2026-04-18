@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hackathon.TestSecurityConfig;
 import com.hackathon.shared.security.JwtTokenProvider;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,11 +35,13 @@ class UserControllerTest {
   @MockBean private JwtTokenProvider jwtTokenProvider;
 
   private User testUser;
+  private UUID testUserId;
 
   @BeforeEach
   void setUp() {
+    testUserId = UUID.fromString("00000000-0000-0000-0000-000000000001");
     testUser = new User();
-    testUser.setId(1);
+    testUser.setId(testUserId);
     testUser.setEmail("test@example.com");
     testUser.setUsername("testuser");
   }
@@ -92,7 +95,7 @@ class UserControllerTest {
 
     when(userService.authenticateUser("test@example.com", "password123"))
         .thenReturn(testUser);
-    when(jwtTokenProvider.generateToken(1, "test@example.com")).thenReturn("valid-jwt-token");
+    when(jwtTokenProvider.generateToken(testUserId, "testuser")).thenReturn("valid-jwt-token");
 
     mockMvc
         .perform(
@@ -102,7 +105,7 @@ class UserControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.token").value("valid-jwt-token"))
-        .andExpect(jsonPath("$.user.id").value(1))
+        .andExpect(jsonPath("$.user.id").value(testUserId.toString()))
         .andExpect(jsonPath("$.user.email").value("test@example.com"));
   }
 
@@ -127,8 +130,8 @@ class UserControllerTest {
   @Test
   void testGetCurrentUser_Success() throws Exception {
     when(jwtTokenProvider.validateToken("valid-jwt-token")).thenReturn(true);
-    when(jwtTokenProvider.getUserIdFromToken("valid-jwt-token")).thenReturn(1);
-    when(userService.getUserById(1)).thenReturn(testUser);
+    when(jwtTokenProvider.getUserIdFromToken("valid-jwt-token")).thenReturn(testUserId);
+    when(userService.getUserById(testUserId)).thenReturn(testUser);
 
     mockMvc
         .perform(
@@ -137,7 +140,7 @@ class UserControllerTest {
                 .header("Authorization", "Bearer valid-jwt-token")
                 .contentType(MediaType.APPLICATION_JSON))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(1))
+        .andExpect(jsonPath("$.id").value(testUserId.toString()))
         .andExpect(jsonPath("$.email").value("test@example.com"))
         .andExpect(jsonPath("$.username").value("testuser"));
   }
