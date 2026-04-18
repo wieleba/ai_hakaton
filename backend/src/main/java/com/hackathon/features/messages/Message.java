@@ -38,4 +38,16 @@ public class Message {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
+
+  @Column(name = "edited_at")
+  private OffsetDateTime editedAt;
+
+  @Column(name = "deleted_at")
+  private OffsetDateTime deletedAt;
+
+  @Column(name = "deleted_by")
+  private UUID deletedBy;
+
+  @Column(name = "reply_to_id")
+  private UUID replyToId;
 }

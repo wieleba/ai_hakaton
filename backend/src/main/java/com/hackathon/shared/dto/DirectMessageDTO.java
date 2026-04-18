@@ -11,11 +11,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatMessageDTO {
+public class DirectMessageDTO {
   private UUID id;
-  private UUID roomId;
-  private UUID userId;
-  private String username;
+  private UUID conversationId;
+  private UUID senderId;
+  private String senderUsername;
   private String text;
   private OffsetDateTime createdAt;
   private OffsetDateTime editedAt;
