@@ -1,17 +1,14 @@
 package com.hackathon.features.users;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
-
-  public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
-    this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
-  }
 
   public User registerUser(String email, String username, String password) {
     if (userRepository.existsByEmail(email)) {
@@ -21,10 +18,11 @@ public class UserService {
       throw new IllegalArgumentException("Username already exists");
     }
 
-    User user = new User();
-    user.setEmail(email);
-    user.setUsername(username);
-    user.setPasswordHash(passwordEncoder.encode(password));
+    User user = User.builder()
+        .email(email)
+        .username(username)
+        .passwordHash(passwordEncoder.encode(password))
+        .build();
 
     return userRepository.save(user);
   }

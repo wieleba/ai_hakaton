@@ -1,4 +1,4 @@
-package com.hackathon.features.rooms;
+package com.hackathon.features.messages;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -12,33 +12,30 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "chat_rooms")
+@Table(name = "messages")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatRoom {
+public class Message {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
 
-  @Column(unique = true, nullable = false, length = 255)
-  private String name;
+  @Column(name = "room_id", nullable = false)
+  private UUID roomId;
 
-  @Column(columnDefinition = "TEXT")
-  private String description;
+  @Column(name = "user_id", nullable = false)
+  private UUID userId;
 
-  @Column(name = "owner_id", nullable = false)
-  private UUID ownerId;
-
-  @Column(nullable = false)
-  private String visibility;
+  @Column(nullable = false, length = 3072)
+  private String text;
 
   @CreationTimestamp
-  @Column(nullable = false, updatable = false)
+  @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
 
   @UpdateTimestamp
-  @Column(nullable = false)
+  @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 }
