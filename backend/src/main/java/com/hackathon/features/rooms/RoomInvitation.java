@@ -11,18 +11,15 @@ import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(
-    name = "room_members",
+    name = "room_invitations",
     uniqueConstraints = {
-      @UniqueConstraint(columnNames = {"room_id", "user_id"})
+      @UniqueConstraint(columnNames = {"room_id", "invitee_id"})
     })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoomMember {
-  public static final String ROLE_MEMBER = "member";
-  public static final String ROLE_ADMIN = "admin";
-
+public class RoomInvitation {
   @Id
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
@@ -30,14 +27,13 @@ public class RoomMember {
   @Column(name = "room_id", nullable = false)
   private UUID roomId;
 
-  @Column(name = "user_id", nullable = false)
-  private UUID userId;
+  @Column(name = "inviter_id", nullable = false)
+  private UUID inviterId;
 
-  @Column(nullable = false, length = 20)
-  @Builder.Default
-  private String role = ROLE_MEMBER;
+  @Column(name = "invitee_id", nullable = false)
+  private UUID inviteeId;
 
   @CreationTimestamp
-  @Column(name = "joined_at", nullable = false, updatable = false)
-  private OffsetDateTime joinedAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private OffsetDateTime createdAt;
 }
