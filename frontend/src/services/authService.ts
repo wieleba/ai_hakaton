@@ -3,6 +3,17 @@ import { User, AuthResponse, RegisterPayload, LoginPayload } from '../types/auth
 
 const API_URL = '/api/users';
 
+// Attach Bearer token to every outgoing request when one is in localStorage.
+// Without this, full-page reloads lose the in-memory axios.defaults header set
+// by setAuthToken at login time, and every authenticated request gets 403.
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken');
+  if (token && config.headers) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const authService = {
   async register(payload: RegisterPayload): Promise<User> {
     const response = await axios.post(`${API_URL}/register`, payload);
