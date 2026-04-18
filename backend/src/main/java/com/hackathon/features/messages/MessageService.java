@@ -153,6 +153,7 @@ public class MessageService {
   private String resolveUsername(UUID userId) {
     try {
       User u = userService.getUserById(userId);
+      if (u == null) return userId.toString().substring(0, 8);
       return u.getUsername();
     } catch (IllegalArgumentException e) {
       return userId.toString().substring(0, 8);
