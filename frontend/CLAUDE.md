@@ -15,7 +15,8 @@ npm run build
 - **Install**: `npm install`
 - **Dev**: `npm run dev` (runs on localhost:5173 by default)
 - **Build**: `npm run build`
-- **Tests**: `npm test` or `npm run test:ui`
+- **Unit tests** (Vitest, jsdom): `npm test` or `npm run test:ui`
+- **E2E tests** (Playwright, headless Chrome): `npm run test:e2e` — requires the full stack running (`docker compose up -d` from repo root). Tests live in `frontend/e2e/`. They use system Chrome via `channel: 'chrome'` so no bundled browser download is needed.
 - **Lint**: `npm run lint`
 - **Format**: `npm run lint:fix`
 - **Preview**: `npm run preview`
