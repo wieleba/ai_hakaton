@@ -26,21 +26,20 @@
 - Plan: `docs/superpowers/plans/2026-04-18-chat-rooms-messaging.md`
 - **Status: COMPLETE**
 
-## In-Progress Features
-
-### Feature #3: Friends & Direct Messaging 🔄
+### Feature #3: Friends & Direct Messaging ✅
 Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + room-user-list discovery) because requirement 2.3.6 couples personal messaging to friendship.
 - Friend requests: send by username, accept, reject, cancel; auto-accept on inverse pending
 - Friend list + remove friend
-- User-to-user ban (terminates friendship, blocks DMs, freezes history)
-- One-to-one direct messaging with real-time WebSocket delivery
+- User-to-user ban (terminates friendship, blocks DMs)
+- One-to-one direct messaging with real-time WebSocket delivery (Spring user destinations)
 - Direct message history with cursor pagination
 - Room user list with "Add Friend" action
-- Schema retrofit: `users.id` Integer → UUID; FK constraints from Feature #2 tables; all time columns → TIMESTAMPTZ; JPA fields → OffsetDateTime; real JWT auth filter (replacing placeholder user IDs)
+- Schema retrofit: `users.id` Integer → UUID; FK constraints from Feature #2 tables; all time columns → TIMESTAMPTZ; JPA fields → OffsetDateTime; real `JwtAuthenticationFilter` replacing placeholder user IDs; `AppSidebar` left-nav
+- Backend: 96 tests passing (unit + controller + end-to-end `FriendsAndDmsFlowIntegrationTest`)
+- Frontend: 45 tests passing (including smoke test for FriendsPage)
 - Spec: `docs/superpowers/specs/2026-04-18-friends-and-dms-design.md`
-- Plan: `docs/superpowers/plans/2026-04-18-friends-and-dms.md` (24 tasks across 7 sections)
-- Progress: Task 1/24 complete (V3 Flyway migration)
-- **Status: IN PROGRESS**
+- Plan: `docs/superpowers/plans/2026-04-18-friends-and-dms.md` (24 tasks across 7 sections — all complete)
+- **Status: COMPLETE**
 
 ## Planned Features
 
@@ -89,6 +88,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 2/8 (Features #1, #2)
-- **In progress:** 1/8 (Feature #3 — Task 1/24 done)
+- **Completed:** 3/8 (Features #1, #2, #3)
+- **In progress:** 0/8
 - **Remaining:** 5/8 (Features #4–#8)
