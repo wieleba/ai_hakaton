@@ -2,8 +2,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import AuthGuard from './components/AuthGuard';
+import { AppSidebar } from './components/AppSidebar';
 import { RoomListPage } from './pages/RoomListPage';
 import { ChatPage } from './pages/ChatPage';
+import { FriendsPage } from './pages/FriendsPage';
+import { DirectMessagesPage } from './pages/DirectMessagesPage';
+import { DirectChatPage } from './pages/DirectChatPage';
 
 export default function App() {
   return (
@@ -26,7 +30,7 @@ export default function App() {
             path="/rooms"
             element={
               <AuthGuard>
-                <RoomListPage />
+                <AppSidebar><RoomListPage /></AppSidebar>
               </AuthGuard>
             }
           />
@@ -34,7 +38,31 @@ export default function App() {
             path="/rooms/:roomId"
             element={
               <AuthGuard>
-                <ChatPage />
+                <AppSidebar><ChatPage /></AppSidebar>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/friends"
+            element={
+              <AuthGuard>
+                <AppSidebar><FriendsPage /></AppSidebar>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/dms"
+            element={
+              <AuthGuard>
+                <AppSidebar><DirectMessagesPage /></AppSidebar>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/dms/:conversationId"
+            element={
+              <AuthGuard>
+                <AppSidebar><DirectChatPage /></AppSidebar>
               </AuthGuard>
             }
           />
