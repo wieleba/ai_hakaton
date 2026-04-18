@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import AuthGuard from './components/AuthGuard';
+import { RoomListPage } from './pages/RoomListPage';
+import { ChatPage } from './pages/ChatPage';
 
 export default function App() {
   return (
@@ -17,6 +19,22 @@ export default function App() {
                 <div className="flex items-center justify-center min-h-screen">
                   <h1 className="text-4xl font-bold">Dashboard</h1>
                 </div>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/rooms"
+            element={
+              <AuthGuard>
+                <RoomListPage />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/rooms/:roomId"
+            element={
+              <AuthGuard>
+                <ChatPage />
               </AuthGuard>
             }
           />
