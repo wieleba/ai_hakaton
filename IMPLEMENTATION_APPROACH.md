@@ -38,8 +38,7 @@
 - Verify backend builds: `cd backend && ./gradlew build`
 - Test APIs manually if needed
 
-### 5. Backend Format & Commit
-- Format code: `./gradlew spotlessApply`
+### 5. Backend Commit
 - Stage files: `git add backend/`
 - Commit with clear message: `git commit -m "feat(backend): feature name description"`
 

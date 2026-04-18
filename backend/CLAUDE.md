@@ -15,7 +15,6 @@ must pass with no errors. Do **not** commit intermediate state that is intention
 - **Build**: `./gradlew build`
 - **Dev**: `./gradlew bootRun`
 - **Tests**: `./gradlew test`
-- **Format**: `./gradlew spotlessApply`
 
 ## Project Structure
 
@@ -71,7 +70,7 @@ gradle/                 # Gradle wrapper and scripts
 ## Code Style
 
 - Indentation: 4 spaces
-- Format: Google Java Style (enforced by Spotless via Gradle)
+- Format: Google Java Style (convention; formatter removed)
 - Line length: 120 characters
 - **Visibility**: Package-private by default, public only when necessary
 - **DTOs**: Use records instead of classes, define as inner classes of controllers
@@ -92,7 +91,6 @@ gradle/                 # Gradle wrapper and scripts
 ./gradlew bootRun          # Start dev server
 ./gradlew test             # Run all tests
 ./gradlew test --tests ClassName  # Run specific test
-./gradlew spotlessApply    # Auto-format
 ./gradlew clean            # Clean build
 ```
 
