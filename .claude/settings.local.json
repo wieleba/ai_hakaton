@@ -21,7 +21,9 @@
       "Bash(./gradlew spotlessApply)",
       "Bash(./gradlew compileTestJava -x spotlessJava)",
       "Bash(npm test *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)"
     ]
   }
 }
