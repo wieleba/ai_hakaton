@@ -65,6 +65,23 @@ public class MessageController {
     }
   }
 
+  record ToggleReactionBody(String emoji) {}
+
+  @PostMapping("/{messageId}/reactions")
+  public ResponseEntity<ChatMessageDTO> toggleReaction(
+      @PathVariable UUID roomId,
+      @PathVariable UUID messageId,
+      @RequestBody ToggleReactionBody body,
+      Authentication authentication) {
+    try {
+      UUID userId = currentUserId(authentication);
+      ChatMessageDTO dto = messageService.toggleReaction(messageId, userId, body.emoji());
+      return ResponseEntity.ok(dto);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
   @DeleteMapping("/{messageId}")
   public ResponseEntity<Void> deleteMessage(
       @PathVariable UUID roomId,

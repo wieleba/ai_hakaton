@@ -20,6 +20,7 @@ import org.springframework.test.context.ActiveProfiles;
 @ActiveProfiles("test")
 class MessageServiceTest {
   @Autowired private MessageRepository messageRepository;
+  @Autowired private MessageReactionRepository messageReactionRepository;
   @Autowired private MessageService messageService;
   @Autowired private ChatRoomService chatRoomService;
   @Autowired private UserService userService;
@@ -200,5 +201,41 @@ class MessageServiceTest {
     ChatMessageDTO dto = messageService.toDto(reloaded);
     assertNull(dto.getText());
     assertNotNull(dto.getDeletedAt());
+  }
+
+  @Test
+  void toggleReaction_addsThenRemoves() {
+    User author = registerUser("a");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    Message sent = messageService.sendMessage(room.getId(), author.getId(), "hi");
+
+    ChatMessageDTO afterAdd = messageService.toggleReaction(sent.getId(), author.getId(), "\uD83D\uDC4D");
+    assertEquals(1, afterAdd.getReactions().size());
+    assertEquals("\uD83D\uDC4D", afterAdd.getReactions().get(0).emoji());
+    assertEquals(1, afterAdd.getReactions().get(0).count());
+    assertTrue(afterAdd.getReactions().get(0).reactedByMe());
+
+    ChatMessageDTO afterRemove = messageService.toggleReaction(sent.getId(), author.getId(), "\uD83D\uDC4D");
+    assertTrue(afterRemove.getReactions().isEmpty());
+  }
+
+  @Test
+  void toggleReaction_multipleUsersAndEmojis() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, a.getId(), "public");
+    chatRoomService.joinRoom(room.getId(), b.getId());
+    Message sent = messageService.sendMessage(room.getId(), a.getId(), "hi");
+
+    messageService.toggleReaction(sent.getId(), a.getId(), "\uD83D\uDC4D");
+    messageService.toggleReaction(sent.getId(), b.getId(), "\uD83D\uDC4D");
+    ChatMessageDTO dto = messageService.toggleReaction(sent.getId(), b.getId(), "\u2764\uFE0F");
+
+    // 👍 has 2 (A + B), ❤️ has 1 (B)
+    var thumbs = dto.getReactions().stream().filter(r -> "\uD83D\uDC4D".equals(r.emoji())).findFirst().orElseThrow();
+    assertEquals(2, thumbs.count());
+    var heart = dto.getReactions().stream().filter(r -> "\u2764\uFE0F".equals(r.emoji())).findFirst().orElseThrow();
+    assertEquals(1, heart.count());
+    assertTrue(heart.reactedByMe()); // caller was B; B just added heart
   }
 }

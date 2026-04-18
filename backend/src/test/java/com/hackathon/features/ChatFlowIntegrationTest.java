@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.hackathon.features.messages.Message;
+import com.hackathon.features.messages.MessageReactionRepository;
 import com.hackathon.features.messages.MessageRepository;
 import com.hackathon.features.messages.MessageService;
 import com.hackathon.features.rooms.ChatRoom;
@@ -41,6 +42,7 @@ class ChatFlowIntegrationTest {
     @Mock private ChatRoomRepository chatRoomRepository;
     @Mock private RoomMemberRepository roomMemberRepository;
     @Mock private MessageRepository messageRepository;
+    @Mock private MessageReactionRepository messageReactionRepository;
     @Mock private UserService userService;
     @Mock private RoomBanRepository roomBanRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
@@ -58,7 +60,7 @@ class ChatFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
-        messageService = new MessageService(messageRepository, roomMemberService, userService, messagingTemplate);
+        messageService = new MessageService(messageRepository, messageReactionRepository, roomMemberService, userService, messagingTemplate);
 
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();

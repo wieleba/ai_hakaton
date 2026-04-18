@@ -6,6 +6,7 @@ import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.ChatMessageDTO;
 import com.hackathon.shared.dto.MessageEventEnvelope;
 import com.hackathon.shared.dto.MessagePreview;
+import com.hackathon.shared.dto.ReactionSummary;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,7 @@ public class MessageService {
   private static final int MAX_MESSAGE_SIZE = 3072;
 
   private final MessageRepository messageRepository;
+  private final MessageReactionRepository messageReactionRepository;
   private final RoomMemberService roomMemberService;
   private final UserService userService;
   private final SimpMessagingTemplate messagingTemplate;
@@ -137,8 +139,50 @@ public class MessageService {
         .deletedAt(m.getDeletedAt())
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
-        .reactions(java.util.List.of())
+        .reactions(buildReactions(m.getId(), callerId))
         .build();
+  }
+
+  /** Toggle a reaction for the caller on a message. Returns the updated message DTO. */
+  @Transactional
+  public ChatMessageDTO toggleReaction(UUID messageId, UUID callerId, String emoji) {
+    Message m = messageRepository.findById(messageId)
+        .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+    if (emoji == null || emoji.isBlank()) {
+      throw new IllegalArgumentException("Emoji cannot be empty");
+    }
+    if (emoji.length() > 32) {
+      throw new IllegalArgumentException("Emoji too long");
+    }
+    Optional<MessageReaction> existing =
+        messageReactionRepository.findByMessageIdAndUserIdAndEmoji(messageId, callerId, emoji);
+    if (existing.isPresent()) {
+      messageReactionRepository.delete(existing.get());
+    } else {
+      messageReactionRepository.save(
+          MessageReaction.builder().messageId(messageId).userId(callerId).emoji(emoji).build());
+    }
+    ChatMessageDTO dto = toDto(m, callerId);
+    // Broadcast with reactedByMe=false (consumers local-reconcile their own flag).
+    publish(MessageEventEnvelope.edited(toDto(m, null)));
+    return dto;
+  }
+
+  private List<ReactionSummary> buildReactions(UUID messageId, UUID callerId) {
+    List<MessageReaction> rows = messageReactionRepository.findByMessageId(messageId);
+    if (rows.isEmpty()) return List.of();
+    // Aggregate counts per emoji + reactedByMe flag
+    java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+    java.util.Set<String> mine = new java.util.HashSet<>();
+    for (MessageReaction r : rows) {
+      counts.merge(r.getEmoji(), 1, Integer::sum);
+      if (callerId != null && callerId.equals(r.getUserId())) {
+        mine.add(r.getEmoji());
+      }
+    }
+    return counts.entrySet().stream()
+        .map(e -> new ReactionSummary(e.getKey(), e.getValue(), mine.contains(e.getKey())))
+        .toList();
   }
 
   private void validateText(String text) {
