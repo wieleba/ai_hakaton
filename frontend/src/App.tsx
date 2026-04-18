@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 export default function App() {
   return (
@@ -16,5 +16,5 @@ export default function App() {
         </Routes>
       </div>
     </Router>
-  )
+  );
 }

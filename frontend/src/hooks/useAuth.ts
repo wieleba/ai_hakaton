@@ -34,8 +34,6 @@ export const useAuth = (): AuthContextType => {
     try {
       const userData = await authService.register(payload);
       setUser(userData);
-    } catch (error) {
-      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -48,8 +46,6 @@ export const useAuth = (): AuthContextType => {
       setUser(response.user);
       setToken(response.token);
       authService.setAuthToken(response.token);
-    } catch (error) {
-      throw error;
     } finally {
       setIsLoading(false);
     }

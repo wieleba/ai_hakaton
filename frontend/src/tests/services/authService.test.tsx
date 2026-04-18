@@ -11,7 +11,8 @@ describe('authService', () => {
 
   it('should register a user successfully', async () => {
     const mockUser = { id: 1, email: 'test@example.com', username: 'testuser' };
-    (axios.post as any).mockResolvedValueOnce({ data: { user: mockUser } });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(axios.post).mockResolvedValueOnce({ data: { user: mockUser } } as any);
 
     const result = await authService.register({
       email: 'test@example.com',
@@ -32,6 +33,7 @@ describe('authService', () => {
       token: 'jwt-token',
       user: { id: 1, email: 'test@example.com', username: 'testuser' },
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (axios.post as any).mockResolvedValueOnce({ data: mockResponse });
 
     const result = await authService.login({
@@ -47,6 +49,7 @@ describe('authService', () => {
   });
 
   it('should handle registration errors', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (axios.post as any).mockRejectedValueOnce(new Error('Email already exists'));
 
     await expect(
@@ -59,6 +62,7 @@ describe('authService', () => {
   });
 
   it('should handle login errors', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (axios.post as any).mockRejectedValueOnce(new Error('Invalid credentials'));
 
     await expect(
@@ -71,6 +75,7 @@ describe('authService', () => {
 
   it('should get current user', async () => {
     const mockUser = { id: 1, email: 'test@example.com', username: 'testuser' };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (axios.get as any).mockResolvedValueOnce({ data: mockUser });
 
     const result = await authService.getCurrentUser('jwt-token');
@@ -82,6 +87,7 @@ describe('authService', () => {
   });
 
   it('should logout', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (axios.post as any).mockResolvedValueOnce({ data: {} });
 
     await authService.logout('jwt-token');
