@@ -1,25 +1,46 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { useRoomMessages } from '../hooks/useRoomMessages';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
+import { ReplyPill } from '../components/ReplyPill';
 import { roomService } from '../services/roomService';
+import { messageService } from '../services/messageService';
+import type { Message } from '../types/room';
+
+const getCurrentUserId = (): string | null => {
+  const token = localStorage.getItem('authToken');
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+};
 
 export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
+  const currentUserId = useMemo(() => getCurrentUserId(), []);
   const { currentRoom, fetchRoom, leaveRoom } = useRoom();
-  const { messages, loadInitialMessages, loadMoreMessages, handleEvent } = useRoomMessages(roomId);
-  const { isConnected, subscribe, unsubscribe, sendMessage: sendWebSocketMessage } = useWebSocket();
+  const { messages, loadInitialMessages, loadMoreMessages, handleEvent } =
+    useRoomMessages(roomId);
+  const {
+    isConnected,
+    subscribe,
+    unsubscribe,
+    sendMessage: sendWebSocketMessage,
+  } = useWebSocket();
+
+  const [replyTarget, setReplyTarget] = useState<Message | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
     fetchRoom(roomId);
     loadInitialMessages(roomId);
-    // joinRoom is idempotent server-side and swallows for private rooms
-    // where the caller is already a member (owner or invitee).
     roomService.joinRoom(roomId).catch(() => {});
 
     if (isConnected) {
@@ -29,16 +50,28 @@ export const ChatPage: React.FC = () => {
     return () => {
       if (roomId) unsubscribe(roomId);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, isConnected]);
 
-  const handleSendMessage = (text: string) => {
+  const handleSend = (text: string) => {
     if (roomId && isConnected) {
       try {
-        sendWebSocketMessage(roomId, text);
+        sendWebSocketMessage(roomId, text, replyTarget?.id);
+        setReplyTarget(null);
       } catch (err) {
         console.error('Failed to send message:', err);
       }
     }
+  };
+
+  const handleEdit = async (messageId: string, newText: string) => {
+    if (!roomId) return;
+    await messageService.editMessage(roomId, messageId, newText);
+  };
+
+  const handleDelete = async (messageId: string) => {
+    if (!roomId) return;
+    await messageService.deleteMessage(roomId, messageId);
   };
 
   const handleLeaveRoom = async () => {
@@ -46,6 +79,11 @@ export const ChatPage: React.FC = () => {
       await leaveRoom(roomId);
       navigate('/rooms');
     }
+  };
+
+  const replyPreview = replyTarget && {
+    authorUsername: replyTarget.username,
+    textPreview: (replyTarget.text ?? '').slice(0, 100),
   };
 
   return (
@@ -74,8 +112,24 @@ export const ChatPage: React.FC = () => {
             isLoading={false}
             hasMore={true}
             onLoadMore={loadMoreMessages}
+            currentUserId={currentUserId}
+            onReply={(m) => setReplyTarget(m)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
-          <MessageInput onSend={handleSendMessage} disabled={!isConnected} />
+          <MessageInput
+            onSend={handleSend}
+            disabled={!isConnected}
+            actions={
+              replyPreview ? (
+                <ReplyPill
+                  authorUsername={replyPreview.authorUsername}
+                  textPreview={replyPreview.textPreview}
+                  onDismiss={() => setReplyTarget(null)}
+                />
+              ) : null
+            }
+          />
         </div>
       </div>
     </div>

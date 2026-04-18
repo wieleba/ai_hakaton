@@ -1,16 +1,33 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
+import { ReplyPill } from '../components/ReplyPill';
 import { useDirectMessages } from '../hooks/useDirectMessages';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
 import type { DirectMessageEvent } from '../hooks/useDirectMessageSocket';
+import { directMessageService } from '../services/directMessageService';
+import type { DirectMessage } from '../types/directMessage';
 import type { Message } from '../types/room';
+
+const getCurrentUserId = (): string | null => {
+  const token = localStorage.getItem('authToken');
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+};
 
 export const DirectChatPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
+  const currentUserId = useMemo(() => getCurrentUserId(), []);
   const { messages, hasMore, isLoading, loadInitial, loadMore, handleEvent } =
     useDirectMessages(conversationId);
+
+  const [replyTarget, setReplyTarget] = useState<DirectMessage | null>(null);
 
   const onDmEvent = useCallback(
     (event: DirectMessageEvent) => {
@@ -29,7 +46,20 @@ export const DirectChatPage: React.FC = () => {
   }, [conversationId, loadInitial]);
 
   const handleSend = (text: string) => {
-    if (conversationId) sendDm(conversationId, text);
+    if (conversationId) {
+      sendDm(conversationId, text, replyTarget?.id);
+      setReplyTarget(null);
+    }
+  };
+
+  const handleEdit = async (messageId: string, newText: string) => {
+    if (!conversationId) return;
+    await directMessageService.editMessage(conversationId, messageId, newText);
+  };
+
+  const handleDelete = async (messageId: string) => {
+    if (!conversationId) return;
+    await directMessageService.deleteMessage(conversationId, messageId);
   };
 
   // Adapt DirectMessage → shape MessageList expects (with username).
@@ -39,10 +69,24 @@ export const DirectChatPage: React.FC = () => {
     id: m.id,
     roomId: m.conversationId,
     userId: m.senderId,
-    username: (m as any).senderUsername ?? (m.senderId ? String(m.senderId).slice(0, 8) : 'unknown'),
+    username: m.senderUsername ?? (m.senderId ? String(m.senderId).slice(0, 8) : 'unknown'),
     text: m.text,
     createdAt: m.createdAt,
+    editedAt: m.editedAt,
+    deletedAt: m.deletedAt,
+    deletedBy: m.deletedBy,
+    replyTo: m.replyTo,
   }));
+
+  const replyPreview = replyTarget && {
+    authorUsername: replyTarget.senderUsername ?? 'unknown',
+    textPreview: (replyTarget.text ?? '').slice(0, 100),
+  };
+
+  const onReplyAdapter = (msg: Message) => {
+    const original = messages.find((m) => m.id === msg.id);
+    if (original) setReplyTarget(original);
+  };
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -54,8 +98,24 @@ export const DirectChatPage: React.FC = () => {
         isLoading={isLoading}
         hasMore={hasMore}
         onLoadMore={loadMore}
+        currentUserId={currentUserId}
+        onReply={onReplyAdapter}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
-      <MessageInput onSend={handleSend} disabled={!conversationId} />
+      <MessageInput
+        onSend={handleSend}
+        disabled={!conversationId}
+        actions={
+          replyPreview ? (
+            <ReplyPill
+              authorUsername={replyPreview.authorUsername}
+              textPreview={replyPreview.textPreview}
+              onDismiss={() => setReplyTarget(null)}
+            />
+          ) : null
+        }
+      />
     </div>
   );
 };
