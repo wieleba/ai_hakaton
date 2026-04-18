@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { useRoomMessages } from '../hooks/useRoomMessages';
@@ -6,7 +6,11 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
 import { RoomMembersPanel } from '../components/RoomMembersPanel';
+import { BanListPanel } from '../components/BanListPanel';
+import { DeleteRoomDialog } from '../components/DeleteRoomDialog';
 import { roomService } from '../services/roomService';
+import { useRoomMembersWithRole } from '../hooks/useRoomMembersWithRole';
+import { useRoomAdminActions } from '../hooks/useRoomAdminActions';
 
 const getCurrentUserId = (): string | null => {
   const token = localStorage.getItem('authToken');
@@ -26,6 +30,11 @@ export const ChatPage: React.FC = () => {
   const { currentRoom, fetchRoom, leaveRoom } = useRoom();
   const { messages, loadInitialMessages, loadMoreMessages, addMessage } = useRoomMessages(roomId);
   const { isConnected, subscribe, unsubscribe, sendMessage: sendWebSocketMessage } = useWebSocket();
+
+  const { isOwner } = useRoomMembersWithRole(roomId, currentUserId ?? undefined);
+  const { deleteRoom } = useRoomAdminActions(roomId);
+  const [bansOpen, setBansOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (!roomId) return;
@@ -63,6 +72,11 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  const handleDeleteRoom = async () => {
+    await deleteRoom();
+    navigate('/rooms');
+  };
+
   return (
     // h-full (not min-h-screen) so the page exactly fills the AppSidebar's
     // main pane. Otherwise with many messages the page grows past the
@@ -76,12 +90,22 @@ export const ChatPage: React.FC = () => {
               <p className="text-gray-600 text-sm">{currentRoom.description}</p>
             )}
           </div>
-          <button
-            onClick={handleLeaveRoom}
-            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
-          >
-            Leave Room
-          </button>
+          <div className="flex gap-2">
+            {isOwner && (
+              <button
+                onClick={() => setDeleteOpen(true)}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+              >
+                Delete Room
+              </button>
+            )}
+            <button
+              onClick={handleLeaveRoom}
+              className="px-4 py-2 border rounded hover:bg-gray-100"
+            >
+              Leave Room
+            </button>
+          </div>
         </div>
       </div>
 
@@ -96,9 +120,26 @@ export const ChatPage: React.FC = () => {
           <MessageInput onSend={handleSendMessage} disabled={!isConnected} />
         </div>
         {roomId && currentUserId && (
-          <RoomMembersPanel roomId={roomId} currentUserId={currentUserId} />
+          <RoomMembersPanel
+            roomId={roomId}
+            currentUserId={currentUserId}
+            roomVisibility={currentRoom?.visibility as 'public' | 'private' | undefined}
+            onOpenBans={() => setBansOpen(true)}
+          />
         )}
       </div>
+
+      {roomId && (
+        <BanListPanel isOpen={bansOpen} onClose={() => setBansOpen(false)} roomId={roomId} />
+      )}
+      {roomId && currentRoom && (
+        <DeleteRoomDialog
+          isOpen={deleteOpen}
+          roomName={currentRoom.name}
+          onConfirm={handleDeleteRoom}
+          onClose={() => setDeleteOpen(false)}
+        />
+      )}
     </div>
   );
 };
