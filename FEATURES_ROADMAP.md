@@ -41,16 +41,22 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-18-friends-and-dms.md` (24 tasks across 7 sections — all complete)
 - **Status: COMPLETE**
 
-## Planned Features
+### Feature #4: Private Rooms, Room Moderation & Invitations ✅
+- Private rooms (not in public catalog, join by invitation; 404-cloaked from non-members)
+- Owner + admin roles on RoomMember (`role` column on room_members, ROLE_MEMBER/ROLE_ADMIN)
+- Admins: kick members (kick = ban), promote/demote other admins, view and clear the ban list
+- Owner: delete room (cascades to members + invitations + bans), cannot leave or be demoted
+- Room invitations for private rooms: send by username, accept/decline/cancel; incoming invitations tab
+- Room ban list with unban action (kicked users are treated as banned)
+- Schema: V4 migration — `role` on `room_members`, `room_bans`, `room_invitations`
+- Backend: 3-scenario `RoomModerationFlowIntegrationTest` (private lifecycle, private-without-invite, banned-public-rejoin) + per-service TDD
+- Frontend: visibility picker, tabbed RoomListPage (Public | My rooms), RoomMembersPanel admin controls with role badges, InviteUserModal, BanListPanel, DeleteRoomDialog
+- Playwright: full lifecycle E2E (create private → invite → accept → kick → unban → delete)
+- Spec: `docs/superpowers/specs/2026-04-18-room-moderation-and-invitations-design.md`
+- Plan: `docs/superpowers/plans/2026-04-18-room-moderation-and-invitations.md` (19 tasks across 7 sections — all complete)
+- **Status: COMPLETE**
 
-### Feature #4: Private Rooms, Room Moderation & Invitations
-- Private rooms (not in public catalog, join by invitation)
-- Room owner + admin roles
-- Admins: delete messages, remove/ban members from room, manage admin list
-- Owner: delete room, cannot be removed
-- Room invitations for private rooms
-- Room ban list (removed users treated as banned)
-- **Status: TODO**
+## Planned Features
 
 ### Feature #5: Message Content Enhancements
 - Multi-line + emoji (plain text already supported)
@@ -88,6 +94,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 3/8 (Features #1, #2, #3)
+- **Completed:** 4/8 (Features #1, #2, #3, #4)
 - **In progress:** 0/8
-- **Remaining:** 5/8 (Features #4–#8)
+- **Remaining:** 4/8 (Features #5–#8)
