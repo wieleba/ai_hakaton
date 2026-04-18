@@ -45,7 +45,7 @@ test.describe('Authentication', () => {
     // Hit a protected page and confirm AuthGuard does NOT bounce us back.
     await page.goto('/rooms');
     await expect(page).toHaveURL(/.*\/rooms$/);
-    await expect(page.locator('body')).toContainText('Chat Rooms');
+    await expect(page.locator('body')).toContainText('Public Rooms');
   });
 
   test('all sidebar destinations render with auth', async ({ page }) => {
@@ -54,7 +54,7 @@ test.describe('Authentication', () => {
     await fillLogin(page, u.email, u.password);
 
     await page.goto('/rooms');
-    await expect(page.locator('body')).toContainText('Chat Rooms');
+    await expect(page.locator('body')).toContainText('Public Rooms');
 
     await page.goto('/friends');
     await expect(page.locator('body')).toContainText('Send request');

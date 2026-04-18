@@ -41,7 +41,7 @@ test.describe('Room re-entry', () => {
     await page.goto('/rooms');
     await page.click('button:has-text("New Room")');
     await page.fill('input[placeholder="Enter room name"]', roomName);
-    await page.click('button:has-text("Create"):not(:has-text("Cancel"))');
+    await page.click('div.fixed button:has-text("Create"):not(:has-text("Cancel"))');
     // Navigates into the new room.
     await page.waitForURL(/.*\/rooms\/[0-9a-f-]{36}$/);
 

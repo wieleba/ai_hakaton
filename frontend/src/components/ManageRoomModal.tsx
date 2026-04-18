@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { ChatRoom } from '../types/room';
 import type { RoomBan, RoomInvitation, RoomMemberView } from '../types/roomModeration';
 import { roomService } from '../services/roomService';
@@ -23,6 +24,7 @@ export const ManageRoomModal: React.FC<Props> = ({
   currentUserId,
   room,
 }) => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('members');
   const { members, isOwner, reload: reloadMembers } = useRoomMembersWithRole(
     roomId,
@@ -215,6 +217,7 @@ export const ManageRoomModal: React.FC<Props> = ({
                   onClick={async () => {
                     await deleteRoom();
                     onClose();
+                    navigate('/rooms');
                   }}
                   className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
                 >
