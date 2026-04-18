@@ -1,14 +1,11 @@
 package com.hackathon.features.messages;
 
-import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.ChatMessageDTO;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +17,9 @@ public class MessageController {
   private final MessageService messageService;
   private final UserService userService;
 
-  record SendMessageRequest(String text) {}
+  record SendMessageRequest(String text, UUID replyToId) {}
+
+  record EditMessageRequest(String text) {}
 
   private UUID currentUserId(Authentication authentication) {
     Object details = authentication.getDetails();
@@ -36,25 +35,7 @@ public class MessageController {
       @RequestParam(required = false) UUID before,
       @RequestParam(defaultValue = "50") int limit) {
     List<Message> messages = messageService.getMessageHistory(roomId, before, limit);
-    // Batch-resolve usernames so the N+1 is N+distinct-senders, not N+N.
-    Map<UUID, String> usernameById =
-        messages.stream()
-            .map(Message::getUserId)
-            .distinct()
-            .collect(Collectors.toMap(Function.identity(), this::resolveUsername));
-    List<ChatMessageDTO> views =
-        messages.stream()
-            .map(
-                m ->
-                    ChatMessageDTO.builder()
-                        .id(m.getId())
-                        .roomId(m.getRoomId())
-                        .userId(m.getUserId())
-                        .username(usernameById.get(m.getUserId()))
-                        .text(m.getText())
-                        .createdAt(m.getCreatedAt())
-                        .build())
-            .toList();
+    List<ChatMessageDTO> views = messages.stream().map(messageService::toDto).toList();
     return ResponseEntity.ok(views);
   }
 
@@ -64,29 +45,37 @@ public class MessageController {
       @RequestBody SendMessageRequest request,
       Authentication authentication) {
     UUID userId = currentUserId(authentication);
-    Message message = messageService.sendMessage(roomId, userId, request.text());
-    ChatMessageDTO view =
-        ChatMessageDTO.builder()
-            .id(message.getId())
-            .roomId(message.getRoomId())
-            .userId(message.getUserId())
-            .username(resolveUsername(userId))
-            .text(message.getText())
-            .createdAt(message.getCreatedAt())
-            .build();
-    return ResponseEntity.ok(view);
+    Message message =
+        messageService.sendMessage(roomId, userId, request.text(), request.replyToId());
+    return ResponseEntity.ok(messageService.toDto(message));
   }
 
-  /**
-   * Resolve a user's displayable name, falling back to a short id prefix if
-   * the user record is gone (e.g., account deleted after posting a message).
-   */
-  private String resolveUsername(UUID userId) {
+  @PatchMapping("/{messageId}")
+  public ResponseEntity<ChatMessageDTO> editMessage(
+      @PathVariable UUID roomId,
+      @PathVariable UUID messageId,
+      @RequestBody EditMessageRequest request,
+      Authentication authentication) {
     try {
-      User user = userService.getUserById(userId);
-      return user.getUsername();
+      UUID userId = currentUserId(authentication);
+      Message edited = messageService.editMessage(messageId, userId, request.text());
+      return ResponseEntity.ok(messageService.toDto(edited));
     } catch (IllegalArgumentException e) {
-      return userId.toString().substring(0, 8);
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+  }
+
+  @DeleteMapping("/{messageId}")
+  public ResponseEntity<Void> deleteMessage(
+      @PathVariable UUID roomId,
+      @PathVariable UUID messageId,
+      Authentication authentication) {
+    try {
+      UUID userId = currentUserId(authentication);
+      messageService.deleteMessage(messageId, userId);
+      return ResponseEntity.noContent().build();
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
   }
 }

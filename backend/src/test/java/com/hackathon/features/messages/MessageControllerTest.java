@@ -1,92 +1,139 @@
 package com.hackathon.features.messages;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.hamcrest.Matchers.hasItem;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.hackathon.TestSecurityConfig;
+import com.hackathon.features.rooms.ChatRoom;
+import com.hackathon.features.rooms.ChatRoomService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
-import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
+import com.hackathon.shared.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-@Import(TestSecurityConfig.class)
 class MessageControllerTest {
-  @Autowired private MockMvc mockMvc;
+  @Autowired MockMvc mvc;
+  @Autowired UserService userService;
+  @Autowired ChatRoomService chatRoomService;
+  @Autowired MessageService messageService;
+  @Autowired JwtTokenProvider jwtTokenProvider;
 
-  @MockBean private MessageService messageService;
-  @MockBean private UserService userService;
-
-  private UUID testUserId;
-
-  @BeforeEach
-  void setUp() {
-    testUserId = UUID.randomUUID();
-    User testUser = User.builder().id(testUserId).username("user").build();
-    when(userService.getUserByUsername("user")).thenReturn(testUser);
-    when(userService.getUserById(testUserId)).thenReturn(testUser);
+  private User registerUser(String suffix) {
+    long t = System.nanoTime();
+    return userService.registerUser(
+        "u" + t + "-" + suffix + "@example.com",
+        "user" + t + suffix,
+        "password12345");
   }
 
+  // ── legacy equivalent tests (now integration) ──────────────────────────
+
   @Test
-  @WithMockUser
   void testGetMessageHistory_includesUsername() throws Exception {
-    UUID roomId = UUID.randomUUID();
-    Message msg = new Message();
-    msg.setId(UUID.randomUUID());
-    msg.setRoomId(roomId);
-    msg.setUserId(testUserId);
-    msg.setText("msg1");
-    msg.setCreatedAt(OffsetDateTime.now());
+    User author = registerUser("hist");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    messageService.sendMessage(room.getId(), author.getId(), "msg1");
 
-    when(messageService.getMessageHistory(roomId, null, 50)).thenReturn(List.of(msg));
-
-    mockMvc
-        .perform(get("/api/rooms/{id}/messages", roomId))
+    mvc.perform(
+            get("/api/rooms/{id}/messages", room.getId())
+                .header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].text").value("msg1"))
-        .andExpect(jsonPath("$[0].username").value("user"))
-        .andExpect(jsonPath("$[0].userId").value(testUserId.toString()));
+        .andExpect(jsonPath("$[0].username").value(author.getUsername()))
+        .andExpect(jsonPath("$[0].userId").value(author.getId().toString()));
   }
 
   @Test
-  @WithMockUser
   void testSendMessage_includesUsername() throws Exception {
-    UUID roomId = UUID.randomUUID();
-    Message message = new Message();
-    message.setId(UUID.randomUUID());
-    message.setRoomId(roomId);
-    message.setUserId(testUserId);
-    message.setText("Hello");
+    User author = registerUser("send");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
 
-    when(messageService.sendMessage(eq(roomId), any(UUID.class), eq("Hello")))
-        .thenReturn(message);
-
-    mockMvc
-        .perform(
-            post("/api/rooms/{id}/messages", roomId)
-                .with(csrf())
+    mvc.perform(
+            post("/api/rooms/{id}/messages", room.getId())
+                .header("Authorization", "Bearer " + token)
                 .contentType("application/json")
                 .content("{\"text\":\"Hello\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.text").value("Hello"))
-        .andExpect(jsonPath("$.username").value("user"));
+        .andExpect(jsonPath("$.username").value(author.getUsername()));
+  }
+
+  // ── new PATCH / DELETE / replyTo tests ─────────────────────────────────
+
+  @Test
+  void editMessage_byAuthor_returnsOk() throws Exception {
+    User author = registerUser("a");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    Message sent = messageService.sendMessage(room.getId(), author.getId(), "hi");
+
+    mvc.perform(
+            patch("/api/rooms/{roomId}/messages/{id}", room.getId(), sent.getId())
+                .header("Authorization", "Bearer " + token)
+                .contentType("application/json")
+                .content("{\"text\":\"edited\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.text").value("edited"))
+        .andExpect(jsonPath("$.editedAt").isNotEmpty());
+  }
+
+  @Test
+  void editMessage_byNonAuthor_rejects() throws Exception {
+    User author = registerUser("a");
+    User other = registerUser("b");
+    String otherToken = jwtTokenProvider.generateToken(other.getId(), other.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    chatRoomService.joinRoom(room.getId(), other.getId());
+    Message sent = messageService.sendMessage(room.getId(), author.getId(), "hi");
+
+    mvc.perform(
+            patch("/api/rooms/{roomId}/messages/{id}", room.getId(), sent.getId())
+                .header("Authorization", "Bearer " + otherToken)
+                .contentType("application/json")
+                .content("{\"text\":\"hijacked\"}"))
+        .andExpect(status().is4xxClientError());
+  }
+
+  @Test
+  void deleteMessage_byAuthor_returns204() throws Exception {
+    User author = registerUser("a");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    Message sent = messageService.sendMessage(room.getId(), author.getId(), "hi");
+
+    mvc.perform(
+            delete("/api/rooms/{roomId}/messages/{id}", room.getId(), sent.getId())
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void history_includesTombstoneAndReplyPreview() throws Exception {
+    User author = registerUser("a");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    Message parent = messageService.sendMessage(room.getId(), author.getId(), "orig");
+    messageService.sendMessage(room.getId(), author.getId(), "re", parent.getId());
+    messageService.deleteMessage(parent.getId(), author.getId());
+
+    mvc.perform(
+            get("/api/rooms/{roomId}/messages", room.getId())
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[?(@.replyTo != null)].replyTo.textPreview").value(hasItem("[deleted]")));
   }
 }
