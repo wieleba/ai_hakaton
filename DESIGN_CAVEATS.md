@@ -28,6 +28,76 @@
 
 ---
 
+## 1.5 Progressive Message History Loading (Critical for Scale)
+
+### Challenge
+- **Real scenario:** 3-year-old chat rooms can have 100K+ messages
+- **Cannot load all:** Loading 100K messages at once = OOM errors, UI freeze
+- **User expectation:** Scroll up to load older messages (infinite scroll / progressive loading)
+- **Performance:** Must remain responsive even with massive history
+
+### Solution: Cursor-Based Pagination
+```
+Initial Load: Most recent 50 messages (1 page)
+              ↓
+User scrolls up to top
+              ↓
+Fetch older messages using cursor-based pagination:
+GET /api/rooms/{roomId}/messages?limit=50&before=<message_id>
+              ↓
+Prepend to message list (append to top, not bottom)
+              ↓
+Repeat as user scrolls further up
+```
+
+### Implementation Requirements
+- **Cursor-based, not offset-based:** More reliable with deletions/updates
+- **Bidirectional loading:** Can load older (scrolling up) and newer (scrolling down)
+- **Virtual scrolling:** Only render visible messages (if >1K in viewport)
+- **Boundary detection:** Know when reached earliest message
+- **Caching strategy:** Keep last 200 messages in memory to avoid re-fetching
+
+### Performance Targets
+- Initial load: <500ms (50 most recent messages)
+- Scroll load: <800ms (50 older messages)
+- Virtual scroll: Render only 20-30 visible items even if 1000+ in DOM
+- Memory: Max 200-300 messages in active memory at once
+
+### Database Query Pattern
+```sql
+-- Get 50 messages BEFORE (older than) message_id, ordered newest first
+SELECT * FROM messages 
+WHERE room_id = ? AND id < ?
+ORDER BY created_at DESC
+LIMIT 50;
+
+-- This ensures user always sees older messages when scrolling up
+-- Stop loading when returned messages < limit (reached earliest)
+```
+
+### Frontend Detection
+```javascript
+// User scrolled to within 100px of top
+if (scrollPosition < 100 && !isLoading && hasMoreMessages) {
+  fetchOlderMessages();
+}
+
+// Stop fetching when returned count < limit
+if (fetchedMessages.length < 50) {
+  setHasMoreMessages(false);
+}
+```
+
+### Test Coverage Required
+- ✅ Load initial 50 messages
+- ✅ Load 50 older messages when scrolling up
+- ✅ Load multiple pages progressively (100K scenario)
+- ✅ Detect boundary when reaching earliest message
+- ✅ No duplicate messages when paginating
+- ✅ Performance: Loading 100 pages should be <30 seconds total
+
+---
+
 ## 2. User Activity Tracking Strategy
 
 ### Optimal Implementation
