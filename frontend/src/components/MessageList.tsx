@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import type { Message } from '../types/room';
 import { MessageItem } from './MessageItem';
 
@@ -24,10 +24,21 @@ export const MessageList: React.FC<MessageListProps> = ({
   onDelete,
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
+  const prevNewestIdRef = useRef<string | null>(null);
+
+  // Server + hook state hold messages newest-first; display oldest-first so
+  // the newest message sits at the bottom (classic chat layout).
+  const ordered = useMemo(() => messages.slice().reverse(), [messages]);
 
   useEffect(() => {
-    if (listRef.current) {
-      listRef.current.scrollTop = 0;
+    // Snap to bottom when a genuinely new message arrives (newest id changed).
+    // Loading older history shouldn't yank the user to the bottom.
+    const newestId = messages[0]?.id ?? null;
+    if (newestId && newestId !== prevNewestIdRef.current) {
+      if (listRef.current) {
+        listRef.current.scrollTop = listRef.current.scrollHeight;
+      }
+      prevNewestIdRef.current = newestId;
     }
   }, [messages]);
 
@@ -49,7 +60,7 @@ export const MessageList: React.FC<MessageListProps> = ({
         <div className="text-center text-gray-500">No messages yet</div>
       )}
       <div className="space-y-3">
-        {messages.map((m) => (
+        {ordered.map((m) => (
           <MessageItem
             key={m.id}
             message={m}
