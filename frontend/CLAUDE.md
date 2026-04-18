@@ -1,5 +1,15 @@
 # React + Vite Frontend Project
 
+## ⚠️ Rule: Every commit must compile
+
+Every commit on this repo must build cleanly. Before committing:
+
+```bash
+npm run build
+```
+
+(which runs `tsc` + `vite build`) must pass with no errors. Do **not** commit intermediate TypeScript-broken state hoping the next commit fixes it — combine the work into one commit instead. This keeps `main` always deployable and makes branch-switching safe.
+
 ## Build & Run
 
 - **Install**: `npm install`

@@ -1,5 +1,15 @@
 # Java 21 Spring Boot Project
 
+## ⚠️ Rule: Every commit must compile
+
+Every commit on this repo must build cleanly. Before committing:
+
+```bash
+./gradlew compileJava compileTestJava
+```
+
+must pass with no errors. Do **not** commit intermediate state that is intentionally broken because a follow-up commit will fix it — combine the work into one commit instead. This keeps `main` always deployable, keeps `git bisect` usable, and makes branch-switching safe. Applies to refactors that span multiple layers (entity + service + controller + tests): they land as one commit.
+
 ## Build & Run
 
 - **Build**: `./gradlew build`
