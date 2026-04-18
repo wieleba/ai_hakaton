@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { MessageList } from '../components/MessageList';
-import { MessageInput } from '../components/MessageInput';
+import { MessageInput, MessageInputHandle } from '../components/MessageInput';
 import { ReplyPill } from '../components/ReplyPill';
+import { EmojiPickerButton } from '../components/EmojiPickerButton';
 import { useDirectMessages } from '../hooks/useDirectMessages';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
 import type { DirectMessageEvent } from '../hooks/useDirectMessageSocket';
@@ -24,6 +25,7 @@ const getCurrentUserId = (): string | null => {
 export const DirectChatPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const currentUserId = useMemo(() => getCurrentUserId(), []);
+  const inputRef = useRef<MessageInputHandle>(null);
   const { messages, hasMore, isLoading, loadInitial, loadMore, handleEvent } =
     useDirectMessages(conversationId);
 
@@ -104,16 +106,20 @@ export const DirectChatPage: React.FC = () => {
         onDelete={handleDelete}
       />
       <MessageInput
+        ref={inputRef}
         onSend={handleSend}
         disabled={!conversationId}
         actions={
-          replyPreview ? (
-            <ReplyPill
-              authorUsername={replyPreview.authorUsername}
-              textPreview={replyPreview.textPreview}
-              onDismiss={() => setReplyTarget(null)}
-            />
-          ) : null
+          <>
+            <EmojiPickerButton onPick={(e) => inputRef.current?.insertText(e)} />
+            {replyPreview && (
+              <ReplyPill
+                authorUsername={replyPreview.authorUsername}
+                textPreview={replyPreview.textPreview}
+                onDismiss={() => setReplyTarget(null)}
+              />
+            )}
+          </>
         }
       />
     </div>

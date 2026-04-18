@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { useRoomMessages } from '../hooks/useRoomMessages';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { MessageList } from '../components/MessageList';
-import { MessageInput } from '../components/MessageInput';
+import { MessageInput, MessageInputHandle } from '../components/MessageInput';
 import { ReplyPill } from '../components/ReplyPill';
+import { EmojiPickerButton } from '../components/EmojiPickerButton';
 import { roomService } from '../services/roomService';
 import { messageService } from '../services/messageService';
 import type { Message } from '../types/room';
@@ -25,6 +26,7 @@ export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const currentUserId = useMemo(() => getCurrentUserId(), []);
+  const inputRef = useRef<MessageInputHandle>(null);
   const { currentRoom, fetchRoom, leaveRoom } = useRoom();
   const { messages, loadInitialMessages, loadMoreMessages, handleEvent } =
     useRoomMessages(roomId);
@@ -118,16 +120,20 @@ export const ChatPage: React.FC = () => {
             onDelete={handleDelete}
           />
           <MessageInput
+            ref={inputRef}
             onSend={handleSend}
             disabled={!isConnected}
             actions={
-              replyPreview ? (
-                <ReplyPill
-                  authorUsername={replyPreview.authorUsername}
-                  textPreview={replyPreview.textPreview}
-                  onDismiss={() => setReplyTarget(null)}
-                />
-              ) : null
+              <>
+                <EmojiPickerButton onPick={(e) => inputRef.current?.insertText(e)} />
+                {replyPreview && (
+                  <ReplyPill
+                    authorUsername={replyPreview.authorUsername}
+                    textPreview={replyPreview.textPreview}
+                    onDismiss={() => setReplyTarget(null)}
+                  />
+                )}
+              </>
             }
           />
         </div>
