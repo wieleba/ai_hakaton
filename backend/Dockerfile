@@ -1,12 +1,12 @@
-FROM eclipse-temurin:21-jdk-alpine
+FROM eclipse-temurin:25-jdk-alpine
 
 WORKDIR /app
 
 RUN apk add --no-cache wget unzip && \
-    wget https://services.gradle.org/distributions/gradle-8.7-bin.zip && \
-    unzip gradle-8.7-bin.zip && \
-    rm gradle-8.7-bin.zip && \
-    mv gradle-8.7 /opt/gradle && \
+    wget https://services.gradle.org/distributions/gradle-9.4.1-bin.zip && \
+    unzip gradle-9.4.1-bin.zip && \
+    rm gradle-9.4.1-bin.zip && \
+    mv gradle-9.4.1 /opt/gradle && \
     ln -s /opt/gradle/bin/gradle /usr/local/bin/gradle
 
 ENV GRADLE_HOME=/opt/gradle
