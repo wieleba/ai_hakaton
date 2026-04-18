@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "gradle",
+      "gradlew",
+      "java",
+      "git status",
+      "git log",
+      "git diff",
+      "git add",
+      "git commit",
+      "git branch",
+      "git checkout",
+      "ps",
+      "lsof",
+      "npm",
+      "node"
+    ],
+    "deny": [
+      ".env",
+      ".env.local",
+      "secrets",
+      "credentials"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit|Write(*.java)",
+            "command": "./gradlew spotlessApply 2>/dev/null || true",
+            "timeout": 30000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git reset|git clean|rm -rf)",
+            "command": "exit 2",
+            "timeout": 1000
+          }
+        ]
+      }
+    ]
+  }
+}

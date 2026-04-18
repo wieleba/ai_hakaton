@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "npm",
+      "npm run",
+      "npx",
+      "node",
+      "git status",
+      "git log",
+      "git diff",
+      "git add",
+      "git commit",
+      "git branch",
+      "git checkout",
+      "ps",
+      "lsof"
+    ],
+    "deny": [
+      ".env",
+      ".env.local",
+      ".env.development.local",
+      "secrets",
+      "credentials",
+      "API_KEY",
+      "PRIVATE_KEY"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Edit|Write(*.tsx|*.ts|*.jsx|*.js)",
+            "command": "npm run lint:fix 2>/dev/null || true",
+            "timeout": 20000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git reset|git clean|rm -rf)",
+            "command": "exit 2",
+            "timeout": 1000
+          }
+        ]
+      }
+    ]
+  }
+}

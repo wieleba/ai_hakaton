@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker-compose up *)",
+      "Bash(docker --version)",
+      "Bash(docker compose *)",
+      "Bash(curl -s http://localhost:8080/api/actuator)",
+      "Bash(curl -s http://localhost:8080/api/actuator/health)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'docs: add chat application implementation strategy *)",
+      "Bash(gradle tasks *)",
+      "Bash(./gradlew tasks *)",
+      "Bash(./gradlew --version)",
+      "Bash(./gradlew build *)",
+      "Bash(java *)",
+      "Bash(./gradlew clean *)",
+      "Bash(./gradlew compileJava -x spotlessJava)",
+      "Bash(./gradlew test *)",
+      "Bash(./gradlew dependencies *)",
+      "Bash(./gradlew spotlessApply)",
+      "Bash(./gradlew compileTestJava -x spotlessJava)",
+      "Bash(npm test *)",
+      "Bash(npm install *)"
+    ]
+  }
+}
