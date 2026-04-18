@@ -18,7 +18,13 @@ export const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, h
   }, [messages]);
 
   return (
-    <div ref={listRef} className="flex-1 overflow-y-auto bg-white p-4 border rounded mb-4">
+    <div
+      ref={listRef}
+      // min-h-0 allows this flex child to shrink below its content height so
+      // overflow-y-auto actually activates. Without it, the list grows and
+      // pushes sibling elements (like MessageInput) off-screen.
+      className="flex-1 min-h-0 overflow-y-auto bg-white p-4 border rounded mb-4"
+    >
       {hasMore && !isLoading && (
         <button onClick={onLoadMore} className="w-full text-center text-blue-500 text-sm mb-4 hover:underline">Load older messages</button>
       )}
