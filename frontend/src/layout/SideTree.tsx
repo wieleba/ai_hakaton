@@ -7,6 +7,7 @@ import type { FriendView } from '../types/friendship';
 import { RoomCreateModal } from '../components/RoomCreateModal';
 import { SideTreeRoomList } from './SideTreeRoomList';
 import { SideTreeContactList } from './SideTreeContactList';
+import { SearchDropdown } from './SearchDropdown';
 
 export const SideTree: React.FC = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
@@ -50,7 +51,7 @@ export const SideTree: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       <div className="p-2 border-b">
-        <div className="text-xs text-gray-400">Search coming…</div>
+        <SearchDropdown />
       </div>
       <div className="flex-1 overflow-y-auto">
         <div className="py-1">
