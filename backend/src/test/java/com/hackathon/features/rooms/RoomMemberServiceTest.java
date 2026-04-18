@@ -12,13 +12,14 @@ import org.mockito.MockitoAnnotations;
 
 class RoomMemberServiceTest {
   @Mock private RoomMemberRepository roomMemberRepository;
+  @Mock private ChatRoomRepository chatRoomRepository;
 
   private RoomMemberService service;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
-    service = new RoomMemberService(roomMemberRepository);
+    service = new RoomMemberService(roomMemberRepository, chatRoomRepository);
   }
 
   @Test
