@@ -1,124 +1,160 @@
 package com.hackathon.features.dms;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.hackathon.features.friendships.Friendship;
+import com.hackathon.features.friendships.FriendshipService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
-import com.hackathon.shared.security.TestSecurityConfig;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
+import com.hackathon.shared.security.JwtTokenProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Import(TestSecurityConfig.class)
 @ActiveProfiles("test")
 class DirectMessageControllerTest {
   @Autowired MockMvc mvc;
-  @MockBean DirectMessageService directMessageService;
-  @MockBean ConversationService conversationService;
-  @MockBean UserService userService;
+  @Autowired UserService userService;
+  @Autowired FriendshipService friendshipService;
+  @Autowired ConversationService conversationService;
+  @Autowired DirectMessageService directMessageService;
+  @Autowired JwtTokenProvider jwtTokenProvider;
 
-  UUID meId;
+  private User registerUser(String suffix) {
+    long t = System.nanoTime();
+    return userService.registerUser(
+        "u" + t + "-" + suffix + "@example.com",
+        "user" + t + suffix,
+        "password12345");
+  }
 
-  @BeforeEach
-  void setUp() {
-    meId = UUID.randomUUID();
-    when(userService.getUserByUsername("user"))
-        .thenReturn(User.builder().id(meId).username("user").build());
+  private void makeFriends(User a, User b) {
+    Friendship req = friendshipService.sendRequest(a.getId(), b.getUsername());
+    friendshipService.accept(b.getId(), req.getId());
   }
 
   @Test
-  @WithMockUser(username = "user")
   void listConversations() throws Exception {
-    UUID otherId = UUID.randomUUID();
-    DirectConversation conv =
-        DirectConversation.builder().id(UUID.randomUUID()).user1Id(meId).user2Id(otherId).build();
-    when(directMessageService.listConversations(meId)).thenReturn(List.of(conv));
-    when(conversationService.otherParticipant(conv, meId)).thenReturn(otherId);
-    when(directMessageService.lastMessage(conv.getId()))
-        .thenReturn(
-            Optional.of(
-                DirectMessage.builder()
-                    .id(UUID.randomUUID())
-                    .text("hey")
-                    .senderId(otherId)
-                    .build()));
-    when(userService.getUserById(otherId))
-        .thenReturn(User.builder().id(otherId).username("bob").build());
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    directMessageService.send(a.getId(), conv.getId(), "hey");
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
 
-    mvc.perform(get("/api/dms/conversations"))
+    mvc.perform(
+            get("/api/dms/conversations")
+                .header("Authorization", "Bearer " + tokenA))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].otherUsername").value("bob"))
+        .andExpect(jsonPath("$[0].otherUsername").value(b.getUsername()))
         .andExpect(jsonPath("$[0].lastMessage").value("hey"));
   }
 
   @Test
-  @WithMockUser(username = "user")
   void getOrCreateWithOther() throws Exception {
-    UUID otherId = UUID.randomUUID();
-    UUID convId = UUID.randomUUID();
-    when(conversationService.getOrCreate(eq(meId), eq(otherId)))
-        .thenReturn(
-            DirectConversation.builder().id(convId).user1Id(meId).user2Id(otherId).build());
-
-    mvc.perform(get("/api/dms/with/{otherId}", otherId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.id").value(convId.toString()));
-  }
-
-  @Test
-  @WithMockUser(username = "user")
-  void getHistory() throws Exception {
-    UUID convId = UUID.randomUUID();
-    when(directMessageService.getHistory(convId, null, 50))
-        .thenReturn(
-            List.of(
-                DirectMessage.builder()
-                    .id(UUID.randomUUID())
-                    .text("a")
-                    .senderId(meId)
-                    .build()));
-
-    mvc.perform(get("/api/dms/{id}/messages", convId))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$[0].text").value("a"));
-  }
-
-  @Test
-  @WithMockUser(username = "user")
-  void sendViaRest() throws Exception {
-    UUID convId = UUID.randomUUID();
-    DirectMessage saved =
-        DirectMessage.builder()
-            .id(UUID.randomUUID())
-            .conversationId(convId)
-            .senderId(meId)
-            .text("hi")
-            .build();
-    when(directMessageService.send(meId, convId, "hi")).thenReturn(saved);
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
 
     mvc.perform(
-            post("/api/dms/{id}/messages", convId)
-                .with(csrf())
+            get("/api/dms/with/{otherId}", b.getId())
+                .header("Authorization", "Bearer " + tokenA))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.user1Id").exists());
+  }
+
+  @Test
+  void getHistory() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    directMessageService.send(a.getId(), conv.getId(), "a-msg");
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
+
+    mvc.perform(
+            get("/api/dms/{id}/messages", conv.getId())
+                .header("Authorization", "Bearer " + tokenA))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].text").value("a-msg"));
+  }
+
+  @Test
+  void sendViaRest() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
+
+    mvc.perform(
+            post("/api/dms/{id}/messages", conv.getId())
+                .header("Authorization", "Bearer " + tokenA)
                 .contentType("application/json")
                 .content("{\"text\":\"hi\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.text").value("hi"));
+  }
+
+  @Test
+  void editMessage_byAuthor_returnsOk_dm() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
+
+    mvc.perform(
+            patch("/api/dms/{cid}/messages/{id}", conv.getId(), sent.getId())
+                .header("Authorization", "Bearer " + tokenA)
+                .contentType("application/json")
+                .content("{\"text\":\"edited\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.text").value("edited"))
+        .andExpect(jsonPath("$.editedAt").isNotEmpty());
+  }
+
+  @Test
+  void deleteMessage_byAuthor_returns204_dm() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    String tokenA = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
+
+    mvc.perform(
+            delete("/api/dms/{cid}/messages/{id}", conv.getId(), sent.getId())
+                .header("Authorization", "Bearer " + tokenA))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  void editMessage_byNonAuthor_rejects_dm() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    String tokenB = jwtTokenProvider.generateToken(b.getId(), b.getUsername());
+
+    mvc.perform(
+            patch("/api/dms/{cid}/messages/{id}", conv.getId(), sent.getId())
+                .header("Authorization", "Bearer " + tokenB)
+                .contentType("application/json")
+                .content("{\"text\":\"hijacked\"}"))
+        .andExpect(status().is4xxClientError());
   }
 }

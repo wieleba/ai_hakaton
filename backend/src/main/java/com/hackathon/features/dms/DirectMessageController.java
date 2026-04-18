@@ -2,6 +2,7 @@ package com.hackathon.features.dms;
 
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
+import com.hackathon.shared.dto.DirectMessageDTO;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +19,9 @@ public class DirectMessageController {
   private final ConversationService conversationService;
   private final UserService userService;
 
-  record SendMessageBody(String text) {}
+  record SendMessageBody(String text, UUID replyToId) {}
+
+  record EditMessageBody(String text) {}
 
   record ConversationView(
       UUID id,
@@ -43,12 +46,14 @@ public class DirectMessageController {
                   UUID otherId = conversationService.otherParticipant(conv, me);
                   User other = userService.getUserById(otherId);
                   var last = directMessageService.lastMessage(conv.getId()).orElse(null);
+                  String lastText = null;
+                  OffsetDateTime lastAt = null;
+                  if (last != null) {
+                    lastText = last.getDeletedAt() == null ? last.getText() : null;
+                    lastAt = last.getCreatedAt();
+                  }
                   return new ConversationView(
-                      conv.getId(),
-                      otherId,
-                      other.getUsername(),
-                      last != null ? last.getText() : null,
-                      last != null ? last.getCreatedAt() : null);
+                      conv.getId(), otherId, other.getUsername(), lastText, lastAt);
                 })
             .toList();
     return ResponseEntity.ok(views);
@@ -62,19 +67,51 @@ public class DirectMessageController {
   }
 
   @GetMapping("/{conversationId}/messages")
-  public ResponseEntity<List<DirectMessage>> getHistory(
+  public ResponseEntity<List<DirectMessageDTO>> getHistory(
       @PathVariable UUID conversationId,
       @RequestParam(required = false) UUID before,
       @RequestParam(defaultValue = "50") int limit) {
-    return ResponseEntity.ok(directMessageService.getHistory(conversationId, before, limit));
+    List<DirectMessage> messages = directMessageService.getHistory(conversationId, before, limit);
+    List<DirectMessageDTO> views = messages.stream().map(directMessageService::toDto).toList();
+    return ResponseEntity.ok(views);
   }
 
   @PostMapping("/{conversationId}/messages")
-  public ResponseEntity<DirectMessage> sendMessage(
+  public ResponseEntity<DirectMessageDTO> sendMessage(
       @PathVariable UUID conversationId,
       @RequestBody SendMessageBody body,
       Authentication authentication) {
-    return ResponseEntity.ok(
-        directMessageService.send(currentUserId(authentication), conversationId, body.text()));
+    DirectMessage sent =
+        directMessageService.send(
+            currentUserId(authentication), conversationId, body.text(), body.replyToId());
+    return ResponseEntity.ok(directMessageService.toDto(sent));
+  }
+
+  @PatchMapping("/{conversationId}/messages/{messageId}")
+  public ResponseEntity<DirectMessageDTO> editMessage(
+      @PathVariable UUID conversationId,
+      @PathVariable UUID messageId,
+      @RequestBody EditMessageBody body,
+      Authentication authentication) {
+    try {
+      DirectMessage edited =
+          directMessageService.editMessage(messageId, currentUserId(authentication), body.text());
+      return ResponseEntity.ok(directMessageService.toDto(edited));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
+
+  @DeleteMapping("/{conversationId}/messages/{messageId}")
+  public ResponseEntity<Void> deleteMessage(
+      @PathVariable UUID conversationId,
+      @PathVariable UUID messageId,
+      Authentication authentication) {
+    try {
+      directMessageService.deleteMessage(messageId, currentUserId(authentication));
+      return ResponseEntity.noContent().build();
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
   }
 }
