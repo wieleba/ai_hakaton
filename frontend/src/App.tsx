@@ -2,12 +2,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import AuthGuard from './components/AuthGuard';
-import { AppSidebar } from './components/AppSidebar';
+import { AppShell } from './layout/AppShell';
 import { RoomListPage } from './pages/RoomListPage';
 import { ChatPage } from './pages/ChatPage';
 import { FriendsPage } from './pages/FriendsPage';
 import { DirectMessagesPage } from './pages/DirectMessagesPage';
 import { DirectChatPage } from './pages/DirectChatPage';
+import { SessionsStub } from './pages/SessionsStub';
 
 export default function App() {
   return (
@@ -16,49 +17,22 @@ export default function App() {
         <Routes>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-          {/* /dashboard kept as redirect for any external bookmarks */}
           <Route path="/dashboard" element={<Navigate to="/rooms" replace />} />
           <Route
-            path="/rooms"
             element={
               <AuthGuard>
-                <AppSidebar><RoomListPage /></AppSidebar>
+                <AppShell />
               </AuthGuard>
             }
-          />
-          <Route
-            path="/rooms/:roomId"
-            element={
-              <AuthGuard>
-                <AppSidebar><ChatPage /></AppSidebar>
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/friends"
-            element={
-              <AuthGuard>
-                <AppSidebar><FriendsPage /></AppSidebar>
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/dms"
-            element={
-              <AuthGuard>
-                <AppSidebar><DirectMessagesPage /></AppSidebar>
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/dms/:conversationId"
-            element={
-              <AuthGuard>
-                <AppSidebar><DirectChatPage /></AppSidebar>
-              </AuthGuard>
-            }
-          />
-          <Route path="/" element={<Navigate to="/rooms" replace />} />
+          >
+            <Route path="/rooms" element={<RoomListPage />} />
+            <Route path="/rooms/:roomId" element={<ChatPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/dms" element={<DirectMessagesPage />} />
+            <Route path="/dms/:conversationId" element={<DirectChatPage />} />
+            <Route path="/sessions" element={<SessionsStub />} />
+            <Route path="/" element={<Navigate to="/rooms" replace />} />
+          </Route>
         </Routes>
       </div>
     </Router>

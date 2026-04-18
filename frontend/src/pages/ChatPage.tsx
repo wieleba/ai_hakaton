@@ -5,7 +5,6 @@ import { useRoomMessages } from '../hooks/useRoomMessages';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
-import { RoomMembersPanel } from '../components/RoomMembersPanel';
 import { BanListPanel } from '../components/BanListPanel';
 import { DeleteRoomDialog } from '../components/DeleteRoomDialog';
 import { roomService } from '../services/roomService';
@@ -109,7 +108,7 @@ export const ChatPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-1 min-h-0 max-w-6xl mx-auto w-full">
+      <div className="flex flex-1 min-h-0 w-full">
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <MessageList
             messages={messages}
@@ -119,14 +118,6 @@ export const ChatPage: React.FC = () => {
           />
           <MessageInput onSend={handleSendMessage} disabled={!isConnected} />
         </div>
-        {roomId && currentUserId && (
-          <RoomMembersPanel
-            roomId={roomId}
-            currentUserId={currentUserId}
-            roomVisibility={currentRoom?.visibility as 'public' | 'private' | undefined}
-            onOpenBans={() => setBansOpen(true)}
-          />
-        )}
       </div>
 
       {roomId && (
