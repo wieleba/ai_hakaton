@@ -3,10 +3,15 @@ import { websocketService } from '../services/websocketService';
 import type { Subscription } from '../services/websocketService';
 import type { DirectMessage, FriendEvent } from '../types/directMessage';
 
-type DmHandler = (msg: DirectMessage) => void;
+export type DirectMessageEvent =
+  | { type: 'CREATED'; message: DirectMessage }
+  | { type: 'EDITED'; message: DirectMessage }
+  | { type: 'DELETED'; message: { id: string; deletedAt: string; deletedBy: string } };
+
+type DmEventHandler = (event: DirectMessageEvent) => void;
 type FriendEventHandler = (event: FriendEvent) => void;
 
-export function useDirectMessageSocket(onDm: DmHandler, onFriendEvent: FriendEventHandler) {
+export function useDirectMessageSocket(onDmEvent: DmEventHandler, onFriendEvent: FriendEventHandler) {
   const dmSubRef = useRef<Subscription | null>(null);
   const feSubRef = useRef<Subscription | null>(null);
 
@@ -18,7 +23,7 @@ export function useDirectMessageSocket(onDm: DmHandler, onFriendEvent: FriendEve
         await websocketService.connect(token);
         if (!mounted) return;
         dmSubRef.current = websocketService.subscribe('/user/queue/dms', (msg) => {
-          onDm(msg as unknown as DirectMessage);
+          onDmEvent(msg as unknown as DirectMessageEvent);
         });
         feSubRef.current = websocketService.subscribe(
           '/user/queue/friend-events',
@@ -40,10 +45,10 @@ export function useDirectMessageSocket(onDm: DmHandler, onFriendEvent: FriendEve
         feSubRef.current?.unsubscribe();
       } catch {}
     };
-  }, [onDm, onFriendEvent]);
+  }, [onDmEvent, onFriendEvent]);
 
-  const sendDm = (conversationId: string, text: string) => {
-    websocketService.send(`/app/dms/${conversationId}/message`, { text });
+  const sendDm = (conversationId: string, text: string, replyToId?: string) => {
+    websocketService.send(`/app/dms/${conversationId}/message`, { text, replyToId: replyToId ?? null });
   };
 
   return { sendDm };

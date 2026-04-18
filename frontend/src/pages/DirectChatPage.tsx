@@ -4,22 +4,25 @@ import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
 import { useDirectMessages } from '../hooks/useDirectMessages';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
-import type { DirectMessage } from '../types/directMessage';
+import type { DirectMessageEvent } from '../hooks/useDirectMessageSocket';
 import type { Message } from '../types/room';
 
 export const DirectChatPage: React.FC = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
-  const { messages, hasMore, isLoading, loadInitial, loadMore, addMessage } =
+  const { messages, hasMore, isLoading, loadInitial, loadMore, handleEvent } =
     useDirectMessages(conversationId);
 
-  const onDm = useCallback(
-    (dm: DirectMessage) => {
-      if (dm.conversationId === conversationId) addMessage(dm);
+  const onDmEvent = useCallback(
+    (event: DirectMessageEvent) => {
+      if (event.type === 'CREATED' || event.type === 'EDITED') {
+        if (event.message.conversationId !== conversationId) return;
+      }
+      handleEvent(event);
     },
-    [conversationId, addMessage],
+    [conversationId, handleEvent],
   );
 
-  const { sendDm } = useDirectMessageSocket(onDm, () => {});
+  const { sendDm } = useDirectMessageSocket(onDmEvent, () => {});
 
   useEffect(() => {
     if (conversationId) loadInitial(conversationId);

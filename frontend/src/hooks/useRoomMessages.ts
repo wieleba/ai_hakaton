@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { Message } from '../types/room';
 import { messageService } from '../services/messageService';
+import type { RoomMessageEvent } from './useWebSocket';
 
 export const useRoomMessages = (roomId?: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -44,10 +45,30 @@ export const useRoomMessages = (roomId?: string) => {
     setMessages((prev) => [message, ...prev]);
   }, []);
 
+  const upsertMessage = useCallback((m: Message) => {
+    setMessages((prev) => prev.map((p) => (p.id === m.id ? { ...p, ...m } : p)));
+  }, []);
+
+  const markDeleted = useCallback((id: string, deletedAt: string, deletedBy: string) => {
+    setMessages((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, text: null, deletedAt, deletedBy } : p)),
+    );
+  }, []);
+
+  const handleEvent = useCallback(
+    (event: RoomMessageEvent) => {
+      if (event.type === 'CREATED') addMessage(event.message);
+      else if (event.type === 'EDITED') upsertMessage(event.message);
+      else if (event.type === 'DELETED')
+        markDeleted(event.message.id, event.message.deletedAt, event.message.deletedBy);
+    },
+    [addMessage, upsertMessage, markDeleted],
+  );
+
   const clearMessages = useCallback(() => {
     setMessages([]);
     setHasMore(true);
   }, []);
 
-  return { messages, isLoading, hasMore, error, loadInitialMessages, loadMoreMessages, addMessage, clearMessages };
+  return { messages, isLoading, hasMore, error, loadInitialMessages, loadMoreMessages, addMessage, upsertMessage, markDeleted, handleEvent, clearMessages };
 };

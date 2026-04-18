@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { DirectMessage } from '../types/directMessage';
 import { directMessageService } from '../services/directMessageService';
+import type { DirectMessageEvent } from './useDirectMessageSocket';
 
 export function useDirectMessages(conversationId: string | undefined) {
   const [messages, setMessages] = useState<DirectMessage[]>([]);
@@ -35,5 +36,25 @@ export function useDirectMessages(conversationId: string | undefined) {
     setMessages((prev) => [m, ...prev]);
   }, []);
 
-  return { messages, hasMore, isLoading, loadInitial, loadMore, addMessage };
+  const upsertMessage = useCallback((m: DirectMessage) => {
+    setMessages((prev) => prev.map((p) => (p.id === m.id ? { ...p, ...m } : p)));
+  }, []);
+
+  const markDeleted = useCallback((id: string, deletedAt: string, deletedBy: string) => {
+    setMessages((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, text: null, deletedAt, deletedBy } : p)),
+    );
+  }, []);
+
+  const handleEvent = useCallback(
+    (event: DirectMessageEvent) => {
+      if (event.type === 'CREATED') addMessage(event.message);
+      else if (event.type === 'EDITED') upsertMessage(event.message);
+      else if (event.type === 'DELETED')
+        markDeleted(event.message.id, event.message.deletedAt, event.message.deletedBy);
+    },
+    [addMessage, upsertMessage, markDeleted],
+  );
+
+  return { messages, hasMore, isLoading, loadInitial, loadMore, addMessage, upsertMessage, markDeleted, handleEvent };
 }

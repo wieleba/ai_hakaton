@@ -11,7 +11,7 @@ export const ChatPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const { currentRoom, fetchRoom, leaveRoom } = useRoom();
-  const { messages, loadInitialMessages, loadMoreMessages, addMessage } = useRoomMessages(roomId);
+  const { messages, loadInitialMessages, loadMoreMessages, handleEvent } = useRoomMessages(roomId);
   const { isConnected, subscribe, unsubscribe, sendMessage: sendWebSocketMessage } = useWebSocket();
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const ChatPage: React.FC = () => {
     roomService.joinRoom(roomId).catch(() => {});
 
     if (isConnected) {
-      subscribe(roomId, addMessage);
+      subscribe(roomId, handleEvent);
     }
 
     return () => {

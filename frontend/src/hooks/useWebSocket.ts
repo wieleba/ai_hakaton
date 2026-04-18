@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { websocketService, Subscription } from '../services/websocketService';
-import { Message } from '../types/room';
+import type { Message } from '../types/room';
+
+export type RoomMessageEvent =
+  | { type: 'CREATED'; message: Message }
+  | { type: 'EDITED'; message: Message }
+  | { type: 'DELETED'; message: { id: string; deletedAt: string; deletedBy: string } };
 
 /**
  * Hook for working with the shared STOMP WebSocket connection.
@@ -46,7 +51,7 @@ export const useWebSocket = () => {
   }, []);
 
   const subscribe = useCallback(
-    (roomId: string, onMessage: (message: Message) => void) => {
+    (roomId: string, onEvent: (event: RoomMessageEvent) => void) => {
       if (!websocketService.isConnected()) {
         console.warn('WebSocket not connected; skipping subscribe');
         return;
@@ -58,7 +63,8 @@ export const useWebSocket = () => {
       if (existing) existing.unsubscribe();
 
       const sub = websocketService.subscribe(`/topic/room/${roomId}`, (msg) => {
-        onMessage(msg as unknown as Message);
+        const payload = msg as unknown as RoomMessageEvent;
+        onEvent(payload);
       });
       subsRef.current.set(roomId, sub);
     },
@@ -73,11 +79,11 @@ export const useWebSocket = () => {
     }
   }, []);
 
-  const sendMessage = useCallback((roomId: string, text: string) => {
+  const sendMessage = useCallback((roomId: string, text: string, replyToId?: string) => {
     if (!websocketService.isConnected()) {
       throw new Error('WebSocket not connected');
     }
-    websocketService.send(`/app/rooms/${roomId}/message`, { text });
+    websocketService.send(`/app/rooms/${roomId}/message`, { text, replyToId: replyToId ?? null });
   }, []);
 
   return { isConnected, error, subscribe, unsubscribe, sendMessage };
