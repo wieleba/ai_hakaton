@@ -37,4 +37,12 @@ export const directMessageService = {
   async deleteMessage(conversationId: string, messageId: string): Promise<void> {
     await axios.delete(`/api/dms/${conversationId}/messages/${messageId}`);
   },
+
+  async toggleReaction(
+    conversationId: string,
+    messageId: string,
+    emoji: string,
+  ): Promise<DirectMessage> {
+    return (await axios.post(`/api/dms/${conversationId}/messages/${messageId}/reactions`, { emoji })).data;
+  },
 };

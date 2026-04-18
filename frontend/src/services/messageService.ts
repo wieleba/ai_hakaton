@@ -26,4 +26,12 @@ export const messageService = {
   async deleteMessage(roomId: string, messageId: string): Promise<void> {
     await axios.delete(`/api/rooms/${roomId}/messages/${messageId}`);
   },
+
+  async toggleReaction(
+    roomId: string,
+    messageId: string,
+    emoji: string,
+  ): Promise<Message> {
+    return (await axios.post(`/api/rooms/${roomId}/messages/${messageId}/reactions`, { emoji })).data;
+  },
 };

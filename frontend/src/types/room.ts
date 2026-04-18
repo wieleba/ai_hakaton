@@ -20,6 +20,12 @@ export interface MessagePreview {
   textPreview: string;
 }
 
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+  reactedByMe: boolean;
+}
+
 export interface Message {
   id: string;
   roomId: string;
@@ -31,6 +37,7 @@ export interface Message {
   deletedAt?: string | null;
   deletedBy?: string | null;
   replyTo?: MessagePreview | null;
+  reactions?: ReactionSummary[];
 }
 
 export interface RoomMember {
