@@ -21,6 +21,7 @@ class DirectMessageServiceTest {
   @Autowired ConversationService conversationService;
   @Autowired DirectMessageService directMessageService;
   @Autowired DirectMessageRepository directMessageRepository;
+  @Autowired DirectMessageReactionRepository directMessageReactionRepository;
 
   private User registerUser(String suffix) {
     long t = System.nanoTime();
@@ -173,6 +174,38 @@ class DirectMessageServiceTest {
     directMessageService.deleteMessage(sent.getId(), a.getId());
     OffsetDateTime second = directMessageRepository.findById(sent.getId()).orElseThrow().getDeletedAt();
     assertEquals(first, second);
+  }
+
+  // ── reactions ─────────────────────────────────────────────────────────────
+
+  @Test
+  void toggleReaction_addsThenRemoves_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+
+    com.hackathon.shared.dto.DirectMessageDTO afterAdd =
+        directMessageService.toggleReaction(sent.getId(), a.getId(), "\uD83D\uDC4D");
+    assertEquals(1, afterAdd.getReactions().size());
+    assertTrue(afterAdd.getReactions().get(0).reactedByMe());
+
+    com.hackathon.shared.dto.DirectMessageDTO afterRemove =
+        directMessageService.toggleReaction(sent.getId(), a.getId(), "\uD83D\uDC4D");
+    assertTrue(afterRemove.getReactions().isEmpty());
+  }
+
+  @Test
+  void toggleReaction_nonParticipant_throws() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    User c = registerUser("c");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    DirectMessage sent = directMessageService.send(a.getId(), conv.getId(), "hi");
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.toggleReaction(sent.getId(), c.getId(), "\uD83D\uDC4D"));
   }
 
   // ── reply ─────────────────────────────────────────────────────────────────

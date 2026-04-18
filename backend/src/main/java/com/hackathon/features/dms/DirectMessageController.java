@@ -114,4 +114,21 @@ public class DirectMessageController {
       return ResponseEntity.badRequest().build();
     }
   }
+
+  record ToggleReactionBody(String emoji) {}
+
+  @PostMapping("/{conversationId}/messages/{messageId}/reactions")
+  public ResponseEntity<DirectMessageDTO> toggleReaction(
+      @PathVariable UUID conversationId,
+      @PathVariable UUID messageId,
+      @RequestBody ToggleReactionBody body,
+      Authentication authentication) {
+    try {
+      DirectMessageDTO dto =
+          directMessageService.toggleReaction(messageId, currentUserId(authentication), body.emoji());
+      return ResponseEntity.ok(dto);
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
+  }
 }

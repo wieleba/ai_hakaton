@@ -9,8 +9,12 @@ import com.hackathon.shared.dto.DirectMessageDTO;
 import com.hackathon.shared.dto.DirectMessageEventEnvelope;
 import com.hackathon.shared.dto.MessagePreview;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +34,7 @@ public class DirectMessageService {
   private final UserBanRepository userBanRepository;
   private final UserService userService;
   private final SimpMessagingTemplate messagingTemplate;
+  private final DirectMessageReactionRepository directMessageReactionRepository;
 
   @Transactional
   public DirectMessage send(UUID senderId, UUID conversationId, String text, UUID replyToId) {
@@ -159,8 +164,58 @@ public class DirectMessageService {
         .deletedAt(m.getDeletedAt())
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
-        .reactions(java.util.List.of())
+        .reactions(buildReactions(m.getId(), callerId))
         .build();
+  }
+
+  @Transactional
+  public DirectMessageDTO toggleReaction(UUID messageId, UUID callerId, String emoji) {
+    DirectMessage m = directMessageRepository.findById(messageId)
+        .orElseThrow(() -> new IllegalArgumentException("Message not found"));
+    if (emoji == null || emoji.isBlank()) {
+      throw new IllegalArgumentException("Emoji cannot be empty");
+    }
+    if (emoji.length() > 32) {
+      throw new IllegalArgumentException("Emoji too long");
+    }
+    // Only participants may react
+    DirectConversation conv = loadConversation(m.getConversationId());
+    if (!conv.getUser1Id().equals(callerId) && !conv.getUser2Id().equals(callerId)) {
+      throw new IllegalArgumentException("Not a participant of this conversation");
+    }
+    Optional<DirectMessageReaction> existing =
+        directMessageReactionRepository.findByDirectMessageIdAndUserIdAndEmoji(messageId, callerId, emoji);
+    if (existing.isPresent()) {
+      directMessageReactionRepository.delete(existing.get());
+    } else {
+      directMessageReactionRepository.save(
+          DirectMessageReaction.builder()
+              .directMessageId(messageId)
+              .userId(callerId)
+              .emoji(emoji)
+              .build());
+    }
+    DirectMessageDTO dto = toDto(m, callerId);
+    UUID other = conversationService.otherParticipant(conv, callerId);
+    publishToBoth(callerId, other, DirectMessageEventEnvelope.edited(toDto(m, null)));
+    return dto;
+  }
+
+  private List<com.hackathon.shared.dto.ReactionSummary> buildReactions(UUID messageId, UUID callerId) {
+    List<DirectMessageReaction> rows =
+        directMessageReactionRepository.findByDirectMessageId(messageId);
+    if (rows.isEmpty()) return List.of();
+    Map<String, Integer> counts = new LinkedHashMap<>();
+    Set<String> mine = new HashSet<>();
+    for (DirectMessageReaction r : rows) {
+      counts.merge(r.getEmoji(), 1, Integer::sum);
+      if (callerId != null && callerId.equals(r.getUserId())) {
+        mine.add(r.getEmoji());
+      }
+    }
+    return counts.entrySet().stream()
+        .map(e -> new com.hackathon.shared.dto.ReactionSummary(e.getKey(), e.getValue(), mine.contains(e.getKey())))
+        .toList();
   }
 
   private DirectConversation loadConversation(UUID id) {
