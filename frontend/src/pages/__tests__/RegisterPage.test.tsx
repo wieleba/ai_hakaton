@@ -1,7 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import RegisterPage from '../RegisterPage';
+
+const renderRegister = () =>
+  render(
+    <MemoryRouter>
+      <RegisterPage />
+    </MemoryRouter>,
+  );
 
 vi.mock('../../services/authService');
 vi.mock('../../hooks/useAuth', () => ({
@@ -10,9 +18,10 @@ vi.mock('../../hooks/useAuth', () => ({
     isLoading: false,
   }),
 }));
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
-}));
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => vi.fn() };
+});
 
 describe('RegisterPage', () => {
   beforeEach(() => {
@@ -20,7 +29,7 @@ describe('RegisterPage', () => {
   });
 
   it('should render registration form with email, username, password, and confirm password fields', () => {
-    render(<RegisterPage />);
+    renderRegister();
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
@@ -31,7 +40,7 @@ describe('RegisterPage', () => {
 
   it('should call register with form data when form is submitted with matching passwords', async () => {
     const user = userEvent.setup();
-    render(<RegisterPage />);
+    renderRegister();
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/username/i), 'testuser');
@@ -46,7 +55,7 @@ describe('RegisterPage', () => {
 
   it('should show error when passwords do not match', async () => {
     const user = userEvent.setup();
-    render(<RegisterPage />);
+    renderRegister();
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/username/i), 'testuser');

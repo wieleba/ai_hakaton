@@ -23,7 +23,7 @@ async function fillLogin(page: Page, email: string, pw: string) {
   await page.fill('#email', email);
   await page.fill('#password', pw);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/.*\/dashboard$/);
+  await page.waitForURL(/.*\/rooms$/);
 }
 
 test.describe('Authentication', () => {

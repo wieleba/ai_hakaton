@@ -26,7 +26,7 @@ async function registerAndLogin(
   await page.fill('#email', email);
   await page.fill('#password', pw);
   await page.click('button[type="submit"]');
-  await page.waitForURL(/.*\/dashboard$/);
+  await page.waitForURL(/.*\/rooms$/);
   return { ctx, page };
 }
 
@@ -84,7 +84,7 @@ test.describe('Friends', () => {
     await bobPage.fill('#email', bob.email);
     await bobPage.fill('#password', bob.password);
     await bobPage.click('button[type="submit"]');
-    await bobPage.waitForURL(/.*\/dashboard$/);
+    await bobPage.waitForURL(/.*\/rooms$/);
     await bobPage.goto('/friends');
 
     await expect(bobPage.locator('body')).toContainText('Request from user', { timeout: 5_000 });

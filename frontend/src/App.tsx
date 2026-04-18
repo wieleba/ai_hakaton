@@ -16,16 +16,8 @@ export default function App() {
         <Routes>
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              <AuthGuard>
-                <div className="flex items-center justify-center min-h-screen">
-                  <h1 className="text-4xl font-bold">Dashboard</h1>
-                </div>
-              </AuthGuard>
-            }
-          />
+          {/* /dashboard kept as redirect for any external bookmarks */}
+          <Route path="/dashboard" element={<Navigate to="/rooms" replace />} />
           <Route
             path="/rooms"
             element={
@@ -66,7 +58,7 @@ export default function App() {
               </AuthGuard>
             }
           />
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/rooms" replace />} />
         </Routes>
       </div>
     </Router>

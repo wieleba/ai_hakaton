@@ -1,15 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import LoginPage from '../LoginPage';
+
+const renderLogin = () =>
+  render(
+    <MemoryRouter>
+      <LoginPage />
+    </MemoryRouter>,
+  );
 import * as useAuthModule from '../../hooks/useAuth';
 import type { AuthContextType } from '../../types/auth';
 
 vi.mock('../../services/authService');
 vi.mock('../../hooks/useAuth');
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => vi.fn(),
-}));
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return { ...actual, useNavigate: () => vi.fn() };
+});
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -22,7 +31,7 @@ describe('LoginPage', () => {
       isLoading: false,
     } as unknown as AuthContextType); // eslint-disable-line @typescript-eslint/no-explicit-any
 
-    render(<LoginPage />);
+    renderLogin();
 
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
@@ -36,7 +45,7 @@ describe('LoginPage', () => {
     } as unknown as AuthContextType); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const user = userEvent.setup();
-    render(<LoginPage />);
+    renderLogin();
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/password/i), 'Password123!');
@@ -55,7 +64,7 @@ describe('LoginPage', () => {
     } as unknown as AuthContextType); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const user = userEvent.setup();
-    render(<LoginPage />);
+    renderLogin();
 
     await user.type(screen.getByLabelText(/email/i), 'wrong@example.com');
     await user.type(screen.getByLabelText(/password/i), 'WrongPassword');
