@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 describe('Message History Pagination - 100K Message Scenarios', () => {
+  type MessageType = { id: number; text: string; timestamp: number };
   let mockFetchMessages: ReturnType<typeof vi.fn>;
-  let messageCache: Array<{ id: number; text: string; timestamp: number }> = [];
+  let messageCache: MessageType[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -12,14 +13,14 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
   it('should load initial 50 most recent messages', async () => {
     // Simulate initial load: most recent 50 messages
-    const initialMessages = Array.from({ length: 50 }, (_, i) => ({
+    const initialMessages: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: 100000 - i,
       text: `Message ${100000 - i}`,
       timestamp: Date.now() - i * 1000,
     }));
 
     mockFetchMessages.mockResolvedValueOnce(initialMessages);
-    const result = await mockFetchMessages();
+    const result = (await mockFetchMessages()) as MessageType[];
 
     expect(result).toHaveLength(50);
     expect(result[0].id).toBe(100000); // Most recent
@@ -30,7 +31,7 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
   it('should load older messages when scrolling up', async () => {
     // First batch: messages 99951-100000
-    const firstBatch = Array.from({ length: 50 }, (_, i) => ({
+    const firstBatch: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: 100000 - i,
       text: `Message ${100000 - i}`,
       timestamp: Date.now() - i * 1000,
@@ -39,17 +40,17 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
     // User scrolls up: load messages older than 99951
     const beforeMessageId = messageCache[messageCache.length - 1].id; // 99951
-    const secondBatch = Array.from({ length: 50 }, (_, i) => ({
+    const secondBatch: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: beforeMessageId - 1 - i,
       text: `Message ${beforeMessageId - 1 - i}`,
       timestamp: Date.now() - (50 + i) * 1000,
     }));
 
     mockFetchMessages.mockResolvedValueOnce(secondBatch);
-    const result = await mockFetchMessages({
+    const result = (await mockFetchMessages({
       limit: 50,
       before: beforeMessageId,
-    });
+    })) as MessageType[];
 
     expect(result).toHaveLength(50);
     expect(result[0].id).toBe(99950); // Older than previous batch
@@ -69,17 +70,17 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
     // Load 20 batches to verify pattern (represents 1000 messages)
     while (batchCount < 20) {
-      const batch = Array.from({ length: 50 }, (_, i) => ({
+      const batch: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
         id: currentMessageId - i,
         text: `Message ${currentMessageId - i}`,
         timestamp: Date.now() - totalMessagesLoaded * 1000,
       }));
 
       mockFetchMessages.mockResolvedValueOnce(batch);
-      const result = await mockFetchMessages({
+      const result = (await mockFetchMessages({
         limit: 50,
         before: currentMessageId,
-      });
+      })) as MessageType[];
 
       expect(result).toHaveLength(50);
       totalMessagesLoaded += result.length;
@@ -94,7 +95,7 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
   it('should detect boundary when reaching earliest message', async () => {
     // When server returns fewer messages than limit, we've reached the end
-    const lastBatch = Array.from({ length: 30 }, (_, i) => ({
+    const lastBatch: MessageType[] = Array.from({ length: 30 }, (_, i) => ({
       // Only 30 messages instead of requested 50
       id: 30 - i,
       text: `Message ${30 - i}`,
@@ -102,7 +103,7 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
     }));
 
     mockFetchMessages.mockResolvedValueOnce(lastBatch);
-    const result = await mockFetchMessages({ limit: 50, before: 50 });
+    const result = (await mockFetchMessages({ limit: 50, before: 50 })) as MessageType[];
 
     // Returned fewer than limit = reached earliest message
     expect(result.length).toBeLessThan(50);
@@ -115,15 +116,17 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
 
   it('should not load duplicate messages when paginating', async () => {
     // First batch
-    const batch1 = Array.from({ length: 50 }, (_, i) => ({
+    const batch1: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: 100000 - i,
       text: `Message ${100000 - i}`,
+      timestamp: Date.now() - i * 1000,
     }));
 
     // Second batch
-    const batch2 = Array.from({ length: 50 }, (_, i) => ({
+    const batch2: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: 99950 - i,
       text: `Message ${99950 - i}`,
+      timestamp: Date.now() - (50 + i) * 1000,
     }));
 
     messageCache = batch1;
@@ -139,22 +142,24 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
   it('should maintain message order when loading progressively', async () => {
     // Load 5 batches and verify descending order (newest first)
     // Simulate loading: start with newest batch, then progressively load older
-    let allMessages: typeof messageCache = [];
+    let allMessages: MessageType[] = [];
     let currentId = 100000;
 
     // First load: 100000-99951 (newest)
-    const batch1 = Array.from({ length: 50 }, (_, i) => ({
+    const batch1: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
       id: currentId - i,
       text: `Message ${currentId - i}`,
+      timestamp: Date.now() - i * 1000,
     }));
     allMessages = batch1;
     currentId -= 50; // Now 99950
 
     // Subsequent loads: append older messages to the end (they go below)
     for (let batch = 1; batch < 5; batch++) {
-      const batchMessages = Array.from({ length: 50 }, (_, i) => ({
+      const batchMessages: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
         id: currentId - i,
         text: `Message ${currentId - i}`,
+        timestamp: Date.now() - (batch * 50 + i) * 1000,
       }));
       allMessages = [...allMessages, ...batchMessages]; // Older messages go to end
       currentId -= 50;
@@ -181,9 +186,10 @@ describe('Message History Pagination - 100K Message Scenarios', () => {
       () =>
         new Promise((resolve) => {
           setTimeout(() => {
-            const batch = Array.from({ length: 50 }, (_, i) => ({
+            const batch: MessageType[] = Array.from({ length: 50 }, (_, i) => ({
               id: currentId - i,
               text: `Message ${currentId - i}`,
+              timestamp: Date.now() - i * 1000,
             }));
             resolve(batch);
           }, 5); // Each batch takes ~5ms
