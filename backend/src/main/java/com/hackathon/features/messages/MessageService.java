@@ -103,6 +103,10 @@ public class MessageService {
 
   /** Build the outbound DTO, blanking text on tombstones and resolving the reply preview. */
   public ChatMessageDTO toDto(Message m) {
+    return toDto(m, null);
+  }
+
+  public ChatMessageDTO toDto(Message m, UUID callerId) {
     String displayedText = m.getDeletedAt() == null ? m.getText() : null;
     String username = resolveUsername(m.getUserId());
     MessagePreview preview = null;
@@ -133,6 +137,7 @@ public class MessageService {
         .deletedAt(m.getDeletedAt())
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
+        .reactions(java.util.List.of())
         .build();
   }
 

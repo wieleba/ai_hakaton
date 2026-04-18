@@ -125,6 +125,10 @@ public class DirectMessageService {
   }
 
   public DirectMessageDTO toDto(DirectMessage m) {
+    return toDto(m, null);
+  }
+
+  public DirectMessageDTO toDto(DirectMessage m, UUID callerId) {
     String displayedText = m.getDeletedAt() == null ? m.getText() : null;
     String senderUsername = resolveUsername(m.getSenderId());
     MessagePreview preview = null;
@@ -155,6 +159,7 @@ public class DirectMessageService {
         .deletedAt(m.getDeletedAt())
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
+        .reactions(java.util.List.of())
         .build();
   }
 

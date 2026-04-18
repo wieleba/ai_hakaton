@@ -1,6 +1,7 @@
 package com.hackathon.shared.dto;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,4 +23,5 @@ public class DirectMessageDTO {
   private OffsetDateTime deletedAt;
   private UUID deletedBy;
   private MessagePreview replyTo;
+  private List<ReactionSummary> reactions;
 }
