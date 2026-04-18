@@ -1,18 +1,26 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import RegisterPage from './pages/RegisterPage';
+import LoginPage from './pages/LoginPage';
+import AuthGuard from './components/AuthGuard';
 
 export default function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-100">
         <Routes>
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
-              <div className="flex items-center justify-center min-h-screen">
-                <h1 className="text-4xl font-bold">Chat Application</h1>
-              </div>
+              <AuthGuard>
+                <div className="flex items-center justify-center min-h-screen">
+                  <h1 className="text-4xl font-bold">Dashboard</h1>
+                </div>
+              </AuthGuard>
             }
           />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </div>
     </Router>
