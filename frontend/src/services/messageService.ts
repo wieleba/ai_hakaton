@@ -1,24 +1,29 @@
 import axios from 'axios';
-import { Message } from '../types/room';
+import type { Message } from '../types/room';
 
 export const messageService = {
-  getMessageHistory: async (
-    roomId: string,
-    before?: string,
-    limit: number = 50
-  ): Promise<Message[]> => {
+  async getHistory(roomId: string, before?: string, limit = 50): Promise<Message[]> {
     const params = new URLSearchParams();
     if (before) params.append('before', before);
-    params.append('limit', limit.toString());
-
-    const response = await axios.get(
-      `/api/rooms/${roomId}/messages?${params.toString()}`
-    );
-    return response.data;
+    params.append('limit', String(limit));
+    return (await axios.get(`/api/rooms/${roomId}/messages?${params}`)).data;
   },
 
-  sendMessage: async (roomId: string, text: string): Promise<Message> => {
-    const response = await axios.post(`/api/rooms/${roomId}/messages`, { text });
-    return response.data;
+  async sendMessage(
+    roomId: string,
+    text: string,
+    replyToId?: string,
+  ): Promise<Message> {
+    const body: Record<string, unknown> = { text };
+    if (replyToId) body.replyToId = replyToId;
+    return (await axios.post(`/api/rooms/${roomId}/messages`, body)).data;
+  },
+
+  async editMessage(roomId: string, messageId: string, text: string): Promise<Message> {
+    return (await axios.patch(`/api/rooms/${roomId}/messages/${messageId}`, { text })).data;
+  },
+
+  async deleteMessage(roomId: string, messageId: string): Promise<void> {
+    await axios.delete(`/api/rooms/${roomId}/messages/${messageId}`);
   },
 };

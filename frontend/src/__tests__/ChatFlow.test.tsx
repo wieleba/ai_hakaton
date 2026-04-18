@@ -153,7 +153,7 @@ describe('ChatFlow Integration Tests', () => {
       const messages = Array.from({ length: 50 }, (_, i) =>
         makeMessage(`msg-${i}`, `Message ${i}`, i)
       );
-      vi.mocked(messageServiceModule.messageService.getMessageHistory).mockResolvedValueOnce(
+      vi.mocked(messageServiceModule.messageService.getHistory).mockResolvedValueOnce(
         messages
       );
 
@@ -172,7 +172,7 @@ describe('ChatFlow Integration Tests', () => {
       const messages = Array.from({ length: 30 }, (_, i) =>
         makeMessage(`msg-${i}`, `Message ${i}`, i)
       );
-      vi.mocked(messageServiceModule.messageService.getMessageHistory).mockResolvedValueOnce(
+      vi.mocked(messageServiceModule.messageService.getHistory).mockResolvedValueOnce(
         messages
       );
 
@@ -194,7 +194,7 @@ describe('ChatFlow Integration Tests', () => {
         makeMessage(`msg-old-${i}`, `Old message ${i}`, 50 + i)
       );
 
-      vi.mocked(messageServiceModule.messageService.getMessageHistory)
+      vi.mocked(messageServiceModule.messageService.getHistory)
         .mockResolvedValueOnce(initialMessages)
         .mockResolvedValueOnce(olderMessages);
 
@@ -241,7 +241,7 @@ describe('ChatFlow Integration Tests', () => {
     });
 
     it('should set error when loading messages fails', async () => {
-      vi.mocked(messageServiceModule.messageService.getMessageHistory).mockRejectedValueOnce(
+      vi.mocked(messageServiceModule.messageService.getHistory).mockRejectedValueOnce(
         new Error('Network error')
       );
 
@@ -263,11 +263,11 @@ describe('ChatFlow Integration Tests', () => {
   describe('messageService', () => {
     it('should get message history', async () => {
       const messages = [makeMessage('m1', 'Hello'), makeMessage('m2', 'World')];
-      vi.mocked(messageServiceModule.messageService.getMessageHistory).mockResolvedValueOnce(
+      vi.mocked(messageServiceModule.messageService.getHistory).mockResolvedValueOnce(
         messages
       );
 
-      const result = await messageServiceModule.messageService.getMessageHistory('room-uuid-1');
+      const result = await messageServiceModule.messageService.getHistory('room-uuid-1');
 
       expect(result).toHaveLength(2);
     });
@@ -306,7 +306,7 @@ describe('ChatFlow Integration Tests', () => {
       expect(roomHook.current.currentRoom?.id).toBe(created.id);
 
       // Step 3: Load initial messages (empty room)
-      vi.mocked(messageServiceModule.messageService.getMessageHistory).mockResolvedValueOnce([]);
+      vi.mocked(messageServiceModule.messageService.getHistory).mockResolvedValueOnce([]);
       const { result: msgHook } = renderHook(() => useRoomMessages(created.id));
       await act(async () => {
         await msgHook.current.loadInitialMessages(created.id);

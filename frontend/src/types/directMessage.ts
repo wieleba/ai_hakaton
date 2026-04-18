@@ -1,4 +1,5 @@
 import type { Friendship } from './friendship';
+import type { MessagePreview } from './room';
 
 export interface DirectConversation {
   id: string;
@@ -19,8 +20,13 @@ export interface DirectMessage {
   id: string;
   conversationId: string;
   senderId: string;
-  text: string;
+  senderUsername?: string;
+  text: string | null;
   createdAt: string;
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  replyTo?: MessagePreview | null;
 }
 
 export type FriendEvent =

@@ -12,7 +12,7 @@ export const useRoomMessages = (roomId?: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      const history = await messageService.getMessageHistory(id, undefined, 50);
+      const history = await messageService.getHistory(id, undefined, 50);
       setMessages(history);
       setHasMore(history.length === 50);
     } catch (err: any) {
@@ -28,7 +28,7 @@ export const useRoomMessages = (roomId?: string) => {
       setIsLoading(true);
       try {
         const oldestMessage = messages[messages.length - 1];
-        const history = await messageService.getMessageHistory(roomId, oldestMessage?.id, 50);
+        const history = await messageService.getHistory(roomId, oldestMessage?.id, 50);
         setMessages((prev) => [...prev, ...history]);
         setHasMore(history.length === 50);
       } catch (err: any) {

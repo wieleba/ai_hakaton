@@ -14,13 +14,23 @@ export interface ChatRoom {
   updatedAt: string;
 }
 
+export interface MessagePreview {
+  id: string;
+  authorUsername: string;
+  textPreview: string;
+}
+
 export interface Message {
   id: string;
   roomId: string;
   userId: string;
   username: string;
-  text: string;
+  text: string | null;
   createdAt: string;
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  deletedBy?: string | null;
+  replyTo?: MessagePreview | null;
 }
 
 export interface RoomMember {
