@@ -6,6 +6,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { MessageList } from '../components/MessageList';
 import { MessageInput } from '../components/MessageInput';
 import { RoomMembersPanel } from '../components/RoomMembersPanel';
+import { roomService } from '../services/roomService';
 
 const getCurrentUserId = (): string | null => {
   const token = localStorage.getItem('authToken');
@@ -24,16 +25,25 @@ export const ChatPage: React.FC = () => {
   const currentUserId = useMemo(() => getCurrentUserId(), []);
   const { currentRoom, fetchRoom, leaveRoom } = useRoom();
   const { messages, loadInitialMessages, loadMoreMessages, addMessage } = useRoomMessages(roomId);
-  const { isConnected, subscribe, sendMessage: sendWebSocketMessage } = useWebSocket();
+  const { isConnected, subscribe, unsubscribe, sendMessage: sendWebSocketMessage } = useWebSocket();
 
   useEffect(() => {
-    if (roomId) {
-      fetchRoom(roomId);
-      loadInitialMessages(roomId);
-      if (isConnected) {
-        subscribe(roomId, addMessage);
-      }
+    if (!roomId) return;
+    fetchRoom(roomId);
+    loadInitialMessages(roomId);
+    // Ensure membership on every entry. joinRoom is idempotent server-side,
+    // so calling it after re-entry (when the user previously pressed Leave)
+    // re-adds them so their sends are accepted. Swallow errors — the user
+    // could hit this while the network hiccups; the history load still works.
+    roomService.joinRoom(roomId).catch(() => {});
+
+    if (isConnected) {
+      subscribe(roomId, addMessage);
     }
+
+    return () => {
+      if (roomId) unsubscribe(roomId);
+    };
   }, [roomId, isConnected]);
 
   const handleSendMessage = (text: string) => {

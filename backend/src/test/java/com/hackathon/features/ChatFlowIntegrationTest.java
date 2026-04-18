@@ -166,7 +166,10 @@ class ChatFlowIntegrationTest {
     }
 
     @Test
-    void chatRoomService_joinRoom_throwsWhenAlreadyMember() {
+    void chatRoomService_joinRoom_isIdempotentWhenAlreadyMember() {
+        // Re-joining (e.g. after a previous Leave) must be a silent no-op
+        // — the frontend calls joinRoom on every ChatPage mount so users who
+        // left and re-entered are automatically re-added.
         ChatRoom room = ChatRoom.builder()
                 .id(roomId)
                 .name("general")
@@ -176,9 +179,9 @@ class ChatFlowIntegrationTest {
         when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(room));
         when(roomMemberRepository.existsByRoomIdAndUserId(roomId, memberId)).thenReturn(true);
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> chatRoomService.joinRoom(roomId, memberId));
+        chatRoomService.joinRoom(roomId, memberId);
+
+        verify(roomMemberRepository, never()).save(any(RoomMember.class));
     }
 
     @Test

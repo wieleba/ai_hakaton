@@ -42,8 +42,13 @@ public class ChatRoomService {
     if (!"public".equals(room.getVisibility())) {
       throw new IllegalArgumentException("Cannot join private room");
     }
+    // Idempotent: if the user already belongs to the room, do nothing. This
+    // lets the frontend call joinRoom on every ChatPage mount without having
+    // to first check membership, which avoids a race where a user who just
+    // left and then re-enters can't send messages because the UI forgot to
+    // re-join them.
     if (roomMemberService.isMember(roomId, userId)) {
-      throw new IllegalArgumentException("Already a member of this room");
+      return;
     }
     roomMemberService.addMember(roomId, userId);
   }

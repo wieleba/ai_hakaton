@@ -69,6 +69,22 @@ class ChatRoomServiceTest {
   }
 
   @Test
+  void testJoinRoom_isNoOpWhenAlreadyMember() {
+    UUID roomId = create(UUID.class);
+    UUID userId = create(UUID.class);
+    ChatRoom room = create(ChatRoom.class);
+    room.setVisibility("public");
+
+    when(chatRoomRepository.findById(roomId)).thenReturn(Optional.of(room));
+    when(roomMemberService.isMember(roomId, userId)).thenReturn(true);
+
+    // No throw, no addMember call
+    service.joinRoom(roomId, userId);
+
+    verify(roomMemberService, never()).addMember(any(), any());
+  }
+
+  @Test
   void testLeaveRoom() {
     UUID roomId = create(UUID.class);
     UUID userId = create(UUID.class);

@@ -15,8 +15,15 @@ public class ConversationService {
     if (userA.equals(userB)) {
       throw new IllegalArgumentException("Cannot have a conversation with yourself");
     }
-    UUID user1 = userA.compareTo(userB) < 0 ? userA : userB;
-    UUID user2 = userA.compareTo(userB) < 0 ? userB : userA;
+    // PostgreSQL's UUID "<" is a byte-wise unsigned comparison, equivalent
+    // to lexicographic order of the canonical string form. Java's
+    // UUID.compareTo is a SIGNED long comparison and disagrees with
+    // PostgreSQL whenever a UUID's most significant bit is set (~50% of
+    // randomly generated UUIDs), which would then violate the CHECK
+    // (user1_id < user2_id) constraint. Compare strings instead.
+    int cmp = userA.toString().compareTo(userB.toString());
+    UUID user1 = cmp < 0 ? userA : userB;
+    UUID user2 = cmp < 0 ? userB : userA;
     return directConversationRepository
         .findByUser1IdAndUser2Id(user1, user2)
         .orElseGet(

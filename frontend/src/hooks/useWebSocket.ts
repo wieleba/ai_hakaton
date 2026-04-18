@@ -1,45 +1,75 @@
-import { useState, useEffect, useCallback } from 'react';
-import { websocketService } from '../services/websocketService';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { websocketService, Subscription } from '../services/websocketService';
 import { Message } from '../types/room';
 
+/**
+ * Hook for working with the shared STOMP WebSocket connection.
+ *
+ * The client itself is a singleton on `websocketService` — multiple pages
+ * share one connection for the whole logged-in session. Each hook instance
+ * owns the set of topic subscriptions it created and tears only those down
+ * when the consumer unmounts, so leaving and re-entering a room works
+ * without tearing down every other live subscription (DMs, friend-events).
+ */
 export const useWebSocket = () => {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(websocketService.isConnected());
   const [error, setError] = useState<string | null>(null);
-  const subscriptions = new Map<string, any>();
+  const subsRef = useRef<Map<string, Subscription>>(new Map());
 
   useEffect(() => {
-    const connect = async () => {
+    let cancelled = false;
+
+    const doConnect = async () => {
       try {
         const token = localStorage.getItem('authToken') || '';
         await websocketService.connect(token);
-        setIsConnected(true);
-      } catch (err: any) {
-        setError(err.message);
+        if (!cancelled) setIsConnected(true);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
       }
     };
-    connect();
+
+    if (websocketService.isConnected()) {
+      setIsConnected(true);
+    } else {
+      doConnect();
+    }
+
     return () => {
-      websocketService.disconnect();
-      setIsConnected(false);
+      cancelled = true;
+      // Tear down only subscriptions owned by *this* hook instance. We
+      // intentionally do NOT disconnect the underlying client — other hooks
+      // (DMs, friend events) may be sharing it.
+      subsRef.current.forEach((sub) => sub.unsubscribe());
+      subsRef.current.clear();
     };
   }, []);
 
-  const subscribe = useCallback((roomId: string, onMessage: (message: Message) => void) => {
-    if (!websocketService.isConnected()) {
-      console.warn('WebSocket not connected');
-      return;
-    }
-    const subscription = websocketService.subscribe(`/topic/room/${roomId}`, (message) => {
-      onMessage(message as unknown as Message);
-    });
-    subscriptions.set(roomId, subscription);
-  }, []);
+  const subscribe = useCallback(
+    (roomId: string, onMessage: (message: Message) => void) => {
+      if (!websocketService.isConnected()) {
+        console.warn('WebSocket not connected; skipping subscribe');
+        return;
+      }
+      // Replace any prior subscription for the same room (covers the case
+      // where React fires the effect twice in StrictMode or where the caller
+      // invokes subscribe twice for whatever reason).
+      const existing = subsRef.current.get(roomId);
+      if (existing) existing.unsubscribe();
+
+      const sub = websocketService.subscribe(`/topic/room/${roomId}`, (msg) => {
+        onMessage(msg as unknown as Message);
+      });
+      subsRef.current.set(roomId, sub);
+    },
+    [],
+  );
 
   const unsubscribe = useCallback((roomId: string) => {
-    const subscription = subscriptions.get(roomId);
-    if (subscription) {
-      subscription.unsubscribe();
-      subscriptions.delete(roomId);
+    const sub = subsRef.current.get(roomId);
+    if (sub) {
+      sub.unsubscribe();
+      subsRef.current.delete(roomId);
     }
   }, []);
 
