@@ -1,5 +1,6 @@
 package com.hackathon.features.rooms;
 
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -10,8 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hackathon.TestSecurityConfig;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,7 @@ class ChatRoomControllerTest {
 
   @MockBean private ChatRoomService chatRoomService;
   @MockBean private UserService userService;
+  @MockBean private RoomMemberService roomMemberService;
 
   @BeforeEach
   void setUp() {
@@ -97,5 +99,87 @@ class ChatRoomControllerTest {
 
     mockMvc.perform(post("/api/rooms/{id}/leave", roomId).with(csrf()))
         .andExpect(status().isOk());
+  }
+
+  @Test
+  @WithMockUser(username = "user")
+  void createRoom_passesVisibility() throws Exception {
+    UUID roomId = UUID.randomUUID();
+    ChatRoom room = new ChatRoom();
+    room.setId(roomId);
+    room.setName("secret");
+    room.setVisibility("private");
+    when(chatRoomService.createRoom(eq("secret"), isNull(), any(UUID.class), eq("private")))
+        .thenReturn(room);
+
+    mockMvc
+        .perform(
+            post("/api/rooms")
+                .with(csrf())
+                .contentType("application/json")
+                .content("{\"name\":\"secret\",\"visibility\":\"private\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.visibility").value("private"));
+  }
+
+  @Test
+  @WithMockUser(username = "user")
+  void listMyRooms() throws Exception {
+    ChatRoom r = new ChatRoom();
+    r.setName("r1");
+    when(chatRoomService.listMyRooms(any(UUID.class))).thenReturn(List.of(r));
+
+    mockMvc
+        .perform(get("/api/rooms/mine"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("r1"));
+  }
+
+  @Test
+  @WithMockUser(username = "user")
+  void deleteRoom_returns204() throws Exception {
+    UUID id = UUID.randomUUID();
+    doNothing().when(chatRoomService).deleteRoom(eq(id), any(UUID.class));
+
+    mockMvc
+        .perform(delete("/api/rooms/{id}", id).with(csrf()))
+        .andExpect(status().isNoContent());
+  }
+
+  @Test
+  @WithMockUser(username = "user")
+  void listMembers_includesRoleAndIsOwner() throws Exception {
+    UUID roomId = UUID.randomUUID();
+    UUID ownerId = UUID.randomUUID();
+    UUID memberId = UUID.randomUUID();
+    ChatRoom room = new ChatRoom();
+    room.setId(roomId);
+    room.setOwnerId(ownerId);
+    when(chatRoomService.getRoomById(roomId)).thenReturn(room);
+    when(roomMemberService.listMembersWithRoles(roomId))
+        .thenReturn(
+            java.util.List.of(
+                RoomMember.builder()
+                    .roomId(roomId)
+                    .userId(ownerId)
+                    .role(RoomMember.ROLE_MEMBER)
+                    .build(),
+                RoomMember.builder()
+                    .roomId(roomId)
+                    .userId(memberId)
+                    .role(RoomMember.ROLE_ADMIN)
+                    .build()));
+    when(userService.getUserById(ownerId))
+        .thenReturn(com.hackathon.features.users.User.builder().id(ownerId).username("boss").build());
+    when(userService.getUserById(memberId))
+        .thenReturn(com.hackathon.features.users.User.builder().id(memberId).username("mod").build());
+
+    mockMvc
+        .perform(get("/api/rooms/{id}/members", roomId))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].isOwner").value(true))
+        .andExpect(jsonPath("$[0].role").value("member"))
+        .andExpect(jsonPath("$[1].isOwner").value(false))
+        .andExpect(jsonPath("$[1].role").value("admin"));
   }
 }
