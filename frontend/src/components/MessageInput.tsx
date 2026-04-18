@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { ComposerActions } from './ComposerActions';
 
 interface MessageInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
+  actions?: React.ReactNode;
 }
 
 const MAX_LENGTH = 3072;
 
-export const MessageInput: React.FC<MessageInputProps> = ({ onSend, disabled }) => {
+export const MessageInput: React.FC<MessageInputProps> = ({ onSend, disabled, actions }) => {
   const [text, setText] = useState('');
 
   const send = () => {
@@ -23,8 +25,6 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSend, disabled }) 
     send();
   };
 
-  // Ctrl+Enter (Windows/Linux) or Cmd+Enter (Mac) sends; plain Enter keeps
-  // multi-line editing.
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -36,6 +36,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({ onSend, disabled }) 
 
   return (
     <form onSubmit={handleSubmit} className="border-t p-4 bg-white rounded">
+      <ComposerActions>{actions}</ComposerActions>
       <div className="flex gap-2">
         <textarea
           value={text}
