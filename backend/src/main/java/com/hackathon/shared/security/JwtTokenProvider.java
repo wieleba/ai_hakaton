@@ -59,4 +59,20 @@ public class JwtTokenProvider {
       return false;
     }
   }
+
+  /** Returns the JWT's expiration time as epoch millis, or 0 if the token is invalid. */
+  public long getExpirationEpochMillis(String token) {
+    try {
+      SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+      return Jwts.parser()
+          .verifyWith(key)
+          .build()
+          .parseSignedClaims(token)
+          .getPayload()
+          .getExpiration()
+          .getTime();
+    } catch (Exception e) {
+      return 0L;
+    }
+  }
 }

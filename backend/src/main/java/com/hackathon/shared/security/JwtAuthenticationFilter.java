@@ -19,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtTokenProvider jwtTokenProvider;
   private final UserRepository userRepository;
+  private final TokenRevocationService tokenRevocationService;
 
   @Override
   protected void doFilterInternal(
@@ -27,11 +28,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String header = request.getHeader("Authorization");
     if (header != null && header.startsWith("Bearer ")) {
       String token = header.substring(7);
-      if (jwtTokenProvider.validateToken(token)) {
+      if (jwtTokenProvider.validateToken(token)
+          && !tokenRevocationService.isRevoked(TokenHashing.sha256Hex(token))) {
         UUID userId = jwtTokenProvider.getUserIdFromToken(token);
-        // Guard: the user row may be gone (account deletion). Leave the context
-        // unauthenticated so the SecurityConfig entry point returns 401 on protected
-        // routes; public routes (/register, /login) continue to work.
         if (userRepository.existsById(userId)) {
           String username = jwtTokenProvider.getUsernameFromToken(token);
           UsernamePasswordAuthenticationToken auth =

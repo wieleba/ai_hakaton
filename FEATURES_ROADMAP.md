@@ -159,9 +159,14 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 ### Feature #12: Sessions Management (split out of #7)
 - Active WebSocket session list per user (browser user-agent, IP, connected-at, last-seen)
 - "Log out from this session" action — server disconnects the WS session
-- Optional: token revocation so a disconnected session can't reconnect with the same JWT (requires a server-side revoked-token store)
+- Token revocation so a disconnected session can't reconnect with the same JWT (Redis-backed `revoked_token:{sha256(jwt)}` set, TTL = remaining JWT lifetime)
 - Split out of Feature #7 so the presence work can ship fast; sessions management is security-adjacent and needs more care (token revocation strategy, audit trail)
-- **Status: TODO**
+- **Status: IN PROGRESS**
+  - Task 1 (per-session PresenceEntry metadata) — DONE
+  - Task 2 (capture UA/IP/tokenHash on WS handshake) — DONE
+  - Task 3 (TokenRevocationService + REST filter + WS CONNECT enforcement) — DONE
+  - Task 4 (Sessions REST API + log-out-session) — PENDING
+  - Task 5 (Frontend /sessions page + plumbing) — PENDING
 
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send

@@ -2,12 +2,14 @@ package com.hackathon.shared.websocket;
 
 import com.hackathon.shared.security.JwtTokenProvider;
 import com.hackathon.shared.security.TokenHashing;
+import com.hackathon.shared.security.TokenRevocationService;
 import java.security.Principal;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -26,6 +28,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   public static final String ATTR_TOKEN_HASH = "tokenHash";
   private final JwtTokenProvider jwtTokenProvider;
   private final SessionAttrHandshakeInterceptor handshakeInterceptor;
+  private final TokenRevocationService tokenRevocationService;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -55,17 +58,18 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
               String authHeader = accessor.getFirstNativeHeader("Authorization");
               if (authHeader != null && authHeader.startsWith("Bearer ")) {
                 String token = authHeader.substring(7);
-                if (jwtTokenProvider.validateToken(token)) {
-                  var userId = jwtTokenProvider.getUserIdFromToken(token);
-                  Principal principal =
-                      new UsernamePasswordAuthenticationToken(
-                          userId.toString(), null, Collections.emptyList());
-                  accessor.setUser(principal);
-                  var attrs = accessor.getSessionAttributes();
-                  if (attrs != null) {
-                    attrs.put(ATTR_TOKEN_HASH, TokenHashing.sha256Hex(token));
-                  }
+                String hash = TokenHashing.sha256Hex(token);
+                if (!jwtTokenProvider.validateToken(token)
+                    || tokenRevocationService.isRevoked(hash)) {
+                  throw new MessageDeliveryException("Unauthorized CONNECT");
                 }
+                var userId = jwtTokenProvider.getUserIdFromToken(token);
+                Principal principal =
+                    new UsernamePasswordAuthenticationToken(
+                        userId.toString(), null, Collections.emptyList());
+                accessor.setUser(principal);
+                var attrs = accessor.getSessionAttributes();
+                if (attrs != null) attrs.put(ATTR_TOKEN_HASH, hash);
               }
             }
             return message;
