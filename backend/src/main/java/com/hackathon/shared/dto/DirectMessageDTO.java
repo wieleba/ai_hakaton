@@ -24,4 +24,5 @@ public class DirectMessageDTO {
   private UUID deletedBy;
   private MessagePreview replyTo;
   private List<ReactionSummary> reactions;
+  private AttachmentSummary attachment;
 }

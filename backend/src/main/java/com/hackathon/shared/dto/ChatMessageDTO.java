@@ -24,4 +24,5 @@ public class ChatMessageDTO {
   private UUID deletedBy;
   private MessagePreview replyTo;
   private List<ReactionSummary> reactions;
+  private AttachmentSummary attachment;
 }
