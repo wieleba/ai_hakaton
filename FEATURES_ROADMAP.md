@@ -83,6 +83,22 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-18-message-content.md` (13 tasks — all complete)
 - **Status: COMPLETE**
 
+### Feature polish: Emoji Picker + Message Reactions ✅
+- Emoji picker in composer (`emoji-picker-react`) — 😀 button in the `ComposerActions` slot; inserts at the current textarea caret
+- Message reactions — click 😀+ from the hover menu to pick any emoji; clickable chips appear below the message body showing `[emoji count]` with blue highlight when `reactedByMe`
+- Schema: V6 migration — `message_reactions` + `direct_message_reactions` tables with UNIQUE `(message_id, user_id, emoji)`
+- Backend: `toggleReaction(messageId, callerId, emoji)` on both `MessageService` + `DirectMessageService`; POST `/api/rooms/{rid}/messages/{mid}/reactions` and `/api/dms/{cid}/messages/{mid}/reactions`
+- DTOs gain `reactions: List<ReactionSummary>` with `{emoji, count, reactedByMe}` aggregation
+- Real-time propagation piggybacks on the existing `EDITED` WS envelope (frontend `upsertMessage` merges in place)
+- Backend tests: toggle add/remove + multi-user/multi-emoji aggregation + non-participant rejection for DMs
+- Playwright: 12-scenario suite kept green
+- Spec: `docs/superpowers/specs/2026-04-19-emoji-and-reactions-design.md`
+- **Status: COMPLETE**
+
+### Chat UX fix: newest message at bottom ✅
+- `MessageList` displays oldest-first, newest-last (classic chat layout); hook state stays newest-first so WS event handling is unchanged
+- Scroll snaps to bottom only on a genuinely new message (newest id changed); loading older history preserves scroll position
+
 ## Planned Features
 
 ### Feature #6: Attachments (File & Image Sharing)
@@ -113,6 +129,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 6 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content)
+- **Completed:** 6 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content) + polish (emoji picker + reactions, chat ordering)
 - **In progress:** 0
 - **Remaining:** 3 (Attachments, Presence/Sessions, Account Management)
