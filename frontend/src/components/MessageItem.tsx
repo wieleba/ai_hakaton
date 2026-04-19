@@ -3,6 +3,7 @@ import type { Message } from '../types/room';
 import { MessageActionsMenu } from './MessageActionsMenu';
 import { InlineMessageEditor } from './InlineMessageEditor';
 import { ReactionsBar } from './ReactionsBar';
+import { AttachmentRenderer } from './AttachmentRenderer';
 
 interface Props {
   message: Message;
@@ -75,7 +76,12 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
             onCancel={() => setEditing(false)}
           />
         ) : (
-          <p className="text-gray-700 mt-1 whitespace-pre-wrap">{message.text}</p>
+          <>
+            {message.text && (
+              <p className="text-gray-700 mt-1 whitespace-pre-wrap">{message.text}</p>
+            )}
+            {message.attachment && <AttachmentRenderer attachment={message.attachment} />}
+          </>
         )}
       </div>
       <ReactionsBar
