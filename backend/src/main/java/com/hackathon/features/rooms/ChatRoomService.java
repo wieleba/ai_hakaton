@@ -1,5 +1,7 @@
 package com.hackathon.features.rooms;
 
+import com.hackathon.features.unread.ChatReadMarkerRepository;
+import com.hackathon.features.unread.ChatType;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import java.util.List;
@@ -20,6 +22,7 @@ public class ChatRoomService {
   private final RoomMemberService roomMemberService;
   private final UserService userService;
   private final RoomBanRepository roomBanRepository;
+  private final ChatReadMarkerRepository chatReadMarkerRepository;
 
   @Transactional
   public ChatRoom createRoom(String name, String description, UUID userId, String visibility) {
@@ -88,6 +91,9 @@ public class ChatRoomService {
     if (!room.getOwnerId().equals(userId)) {
       throw new IllegalArgumentException("Only the owner may delete this room");
     }
+    // Clean up polymorphic read-markers explicitly — chat_read_markers.chat_id has
+    // no FK to chat_rooms (it's shared with DMs), so cascade can't handle it.
+    chatReadMarkerRepository.deleteAllForChat(ChatType.ROOM, roomId);
     chatRoomRepository.delete(room);
   }
 

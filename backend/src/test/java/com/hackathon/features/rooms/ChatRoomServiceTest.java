@@ -18,13 +18,14 @@ class ChatRoomServiceTest {
   @Mock private RoomMemberService roomMemberService;
   @Mock private UserService userService;
   @Mock private RoomBanRepository roomBanRepository;
+  @Mock private com.hackathon.features.unread.ChatReadMarkerRepository chatReadMarkerRepository;
 
   private ChatRoomService service;
 
   @BeforeEach
   void setUp() {
     MockitoAnnotations.openMocks(this);
-    service = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
+    service = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository, chatReadMarkerRepository);
   }
 
   @Test
@@ -208,5 +209,7 @@ class ChatRoomServiceTest {
     service.deleteRoom(roomId, ownerId);
 
     verify(chatRoomRepository).delete(room);
+    verify(chatReadMarkerRepository)
+        .deleteAllForChat(com.hackathon.features.unread.ChatType.ROOM, roomId);
   }
 }

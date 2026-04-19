@@ -52,6 +52,7 @@ class ChatFlowIntegrationTest {
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private StorageService storageService;
     @Mock private UnreadService unreadService;
+    @Mock private com.hackathon.features.unread.ChatReadMarkerRepository chatReadMarkerRepository;
 
     // ---- Services (real, wired by Mockito) ----
     @InjectMocks private RoomMemberService roomMemberService;
@@ -65,7 +66,7 @@ class ChatFlowIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
+        chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository, chatReadMarkerRepository);
         messageService = new MessageService(messageRepository, messageReactionRepository, messageAttachmentRepository, roomMemberService, userService, messagingTemplate, storageService, unreadService);
 
         ownerId = UUID.randomUUID();
