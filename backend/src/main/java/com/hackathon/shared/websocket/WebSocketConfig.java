@@ -1,6 +1,7 @@
 package com.hackathon.shared.websocket;
 
 import com.hackathon.shared.security.JwtTokenProvider;
+import com.hackathon.shared.security.TokenHashing;
 import java.security.Principal;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,9 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+  public static final String ATTR_TOKEN_HASH = "tokenHash";
   private final JwtTokenProvider jwtTokenProvider;
+  private final SessionAttrHandshakeInterceptor handshakeInterceptor;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -33,7 +36,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
   @Override
   public void registerStompEndpoints(StompEndpointRegistry registry) {
-    registry.addEndpoint("/ws/chat").setAllowedOriginPatterns("*").withSockJS();
+    registry
+        .addEndpoint("/ws/chat")
+        .setAllowedOriginPatterns("*")
+        .addInterceptors(handshakeInterceptor)
+        .withSockJS();
   }
 
   @Override
@@ -54,6 +61,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                       new UsernamePasswordAuthenticationToken(
                           userId.toString(), null, Collections.emptyList());
                   accessor.setUser(principal);
+                  var attrs = accessor.getSessionAttributes();
+                  if (attrs != null) {
+                    attrs.put(ATTR_TOKEN_HASH, TokenHashing.sha256Hex(token));
+                  }
                 }
               }
             }

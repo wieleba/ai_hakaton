@@ -1,6 +1,9 @@
 package com.hackathon.features.presence;
 
+import com.hackathon.shared.websocket.SessionAttrHandshakeInterceptor;
+import com.hackathon.shared.websocket.WebSocketConfig;
 import java.security.Principal;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +33,17 @@ public class PresenceEventListener {
             log.warn("SessionConnectedEvent with non-UUID principal: {}", user.getName());
             return;
         }
-        presenceService.markOnline(userId, sessionId, null, null, null);
+        Map<String, Object> attrs = accessor.getSessionAttributes();
+        String userAgent = null, remoteAddr = null, tokenHash = null;
+        if (attrs != null) {
+            Object ua = attrs.get(SessionAttrHandshakeInterceptor.ATTR_USER_AGENT);
+            Object ip = attrs.get(SessionAttrHandshakeInterceptor.ATTR_REMOTE_ADDR);
+            Object th = attrs.get(WebSocketConfig.ATTR_TOKEN_HASH);
+            userAgent = ua == null ? null : ua.toString();
+            remoteAddr = ip == null ? null : ip.toString();
+            tokenHash = th == null ? null : th.toString();
+        }
+        presenceService.markOnline(userId, sessionId, userAgent, remoteAddr, tokenHash);
         presencePublisher.publish(userId, presenceService.aggregate(userId));
     }
 
