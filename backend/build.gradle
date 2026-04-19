@@ -25,6 +25,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-websocket'
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
+    // Redis (Lettuce client) for presence session registry + pub/sub
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     // Database
     implementation 'org.postgresql:postgresql:42.7.1'
     implementation 'org.flywaydb:flyway-core:9.22.3'

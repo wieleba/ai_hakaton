@@ -35,6 +35,16 @@ services:
     networks:
       - chat-network
 
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - chat-network
+
   backend:
     build:
       context: ./backend
@@ -50,6 +60,7 @@ services:
       STORAGE_S3_ACCESS_KEY: minioadmin
       STORAGE_S3_SECRET_KEY: minioadmin
       STORAGE_S3_BUCKET: chat-attachments
+      SPRING_DATA_REDIS_HOST: redis
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,6 +88,7 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  redis_data:
 
 networks:
   chat-network:
