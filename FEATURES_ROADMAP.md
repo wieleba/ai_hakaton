@@ -99,14 +99,21 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - `MessageList` displays oldest-first, newest-last (classic chat layout); hook state stays newest-first so WS event handling is unchanged
 - Scroll snaps to bottom only on a genuinely new message (newest id changed); loading older history preserves scroll position
 
-## Planned Features
+### Feature #6: Attachments (File & Image Sharing) ✅
+- One attachment per chat-room or direct-message (multi-attachment deferred)
+- S3-compatible object storage (MinIO in docker-compose; any S3 endpoint in prod — every backend replica sees the same bytes)
+- Multipart `POST /api/rooms/{rid}/messages` and `/api/dms/{cid}/messages` accept `text` + `file`; plain text still goes over WebSocket
+- Backend-proxied `GET /api/attachments/{id}/content` with room-membership / DM-participation auth; `Content-Disposition: inline` for image/* allow-list, `attachment` for everything else
+- 10 MB cap; MIME allow-list — png/jpeg/gif/webp/pdf/txt/zip (SVG / HTML / executables rejected)
+- Soft-delete of a message unlinks the S3 object; hard cascade (room/conversation delete) removes DB rows via FK CASCADE (S3 objects may orphan on hard cascade — known limitation)
+- Frontend: `ComposerAttachButton` + `AttachmentPreviewChip` + `AttachmentRenderer` (inline image or download link); `MessageItem` renders either
+- Backend tests: `InMemoryStorageServiceTest`, `AttachmentControllerTest` (5 scenarios), `AttachmentFlowIntegrationTest` (3 scenarios)
+- Playwright: `attachments.spec.ts` — two-client image upload lifecycle
+- Spec: `docs/superpowers/specs/2026-04-19-attachments-design.md`
+- Plan: `docs/superpowers/plans/2026-04-19-attachments.md` (12 tasks — all complete)
+- **Status: COMPLETE**
 
-### Feature #6: Attachments (File & Image Sharing)
-- Upload images and files (rooms + DMs)
-- In-chat image previews
-- File downloads
-- Storage tied to room/conversation lifetime (deleted with parent)
-- **Status: TODO**
+## Planned Features
 
 ### Feature #7: User Presence & Session Management
 - Presence states: online / AFK (≥1 min inactive) / offline
