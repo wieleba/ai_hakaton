@@ -150,6 +150,13 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
 - **Status: TODO**
 
+### Feature #12: Sessions Management (split out of #7)
+- Active WebSocket session list per user (browser user-agent, IP, connected-at, last-seen)
+- "Log out from this session" action — server disconnects the WS session
+- Optional: token revocation so a disconnected session can't reconnect with the same JWT (requires a server-side revoked-token store)
+- Split out of Feature #7 so the presence work can ship fast; sessions management is security-adjacent and needs more care (token revocation strategy, audit trail)
+- **Status: TODO**
+
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
 - Persist `message_embeds` table per message with `kind`, `source_url`, `canonical_id`, cached `title`, `thumbnail_url`
