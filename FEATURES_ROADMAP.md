@@ -114,10 +114,17 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Active session list (browser/IP), logout from specific sessions
 - **Status: TODO**
 
-### Feature #8: Account Management
-- Password change (for logged-in users)
-- Account deletion cascades (owned rooms + messages + files deleted; memberships removed)
-- **Status: TODO**
+### Feature #8: Account Management ✅
+- Password change for logged-in users — `PATCH /api/users/me/password` requires old password and min-8-char new password (403 on wrong old, 400 on too short)
+- Account deletion — `DELETE /api/users/me` permanently removes the user row; V7 migration cascades through owned rooms + memberships + friendships + DMs + invitations + bans + reactions
+- Messages sent in rooms the deleted user did not own survive with `user_id = NULL` and render as "Deleted user" (backend service fallback)
+- `JwtAuthenticationFilter` rejects tokens for deleted users with 401 on the next request
+- Frontend: `ChangePasswordModal` and `DeleteAccountModal` wired into the profile dropdown; "Type DELETE to confirm" gate on deletion
+- Backend tests: `UserServiceTest`, `UserControllerTest`, `UserControllerSecurityTest`, `JwtAuthenticationFilterExistenceTest`, `AccountDeletionFlowIntegrationTest`
+- Playwright: `account-management.spec.ts` — change-then-login + delete-then-reregister
+- Spec: `docs/superpowers/specs/2026-04-19-account-management-design.md`
+- Plan: `docs/superpowers/plans/2026-04-19-account-management.md` (9 tasks — all complete)
+- **Status: COMPLETE**
 
 ### Feature #9: Password Reset (split out of #8)
 - Forgot-password request by email → time-limited reset token
