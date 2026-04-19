@@ -24,16 +24,18 @@ public class SessionAttrHandshakeInterceptor implements HandshakeInterceptor {
       ServerHttpResponse response,
       WebSocketHandler wsHandler,
       Map<String, Object> attributes) {
-    String userAgent = null;
+    // ConcurrentHashMap (used downstream by Spring's SockJS session map) rejects null
+    // values — only put these when we actually have a value. PresenceEventListener
+    // already treats missing keys as null.
     var agents = request.getHeaders().get("User-Agent");
-    if (agents != null && !agents.isEmpty()) userAgent = agents.get(0);
-    attributes.put(ATTR_USER_AGENT, userAgent);
-
-    String remoteAddr = null;
-    if (request instanceof ServletServerHttpRequest servletReq) {
-      remoteAddr = servletReq.getServletRequest().getRemoteAddr();
+    if (agents != null && !agents.isEmpty() && agents.get(0) != null) {
+      attributes.put(ATTR_USER_AGENT, agents.get(0));
     }
-    attributes.put(ATTR_REMOTE_ADDR, remoteAddr);
+
+    if (request instanceof ServletServerHttpRequest servletReq) {
+      String remoteAddr = servletReq.getServletRequest().getRemoteAddr();
+      if (remoteAddr != null) attributes.put(ATTR_REMOTE_ADDR, remoteAddr);
+    }
     return true;
   }
 
