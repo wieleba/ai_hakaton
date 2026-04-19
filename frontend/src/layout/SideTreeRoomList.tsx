@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import type { ChatRoom } from '../types/room';
+import { useUnread } from '../hooks/useUnread';
 
 interface Props {
   title: string;
@@ -10,6 +11,7 @@ interface Props {
 
 export const SideTreeRoomList: React.FC<Props> = ({ title, rooms, emptyHint }) => {
   const { pathname } = useLocation();
+  const { roomCount } = useUnread();
   return (
     <details open className="px-2 py-1">
       <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500 py-1">
@@ -30,10 +32,15 @@ export const SideTreeRoomList: React.FC<Props> = ({ title, rooms, emptyHint }) =
                     active ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
                   }`}
                 >
-                  # {r.name}{' '}
-                  <span className="text-xs text-gray-400" aria-label="unread count">
-                    (0)
-                  </span>
+                  # {r.name}
+                  {roomCount(r.id) > 0 && (
+                    <span
+                      className="ml-1 inline-block bg-blue-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full align-middle"
+                      aria-label={`${roomCount(r.id)} unread`}
+                    >
+                      {roomCount(r.id)}
+                    </span>
+                  )}
                 </Link>
               </li>
             );

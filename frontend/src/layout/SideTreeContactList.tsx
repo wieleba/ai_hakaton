@@ -1,8 +1,10 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import type { FriendView } from '../types/friendship';
+import type { ConversationView } from '../types/directMessage';
 import { directMessageService } from '../services/directMessageService';
 import { usePresence } from '../hooks/usePresence';
+import { useUnread } from '../hooks/useUnread';
 import type { PresenceState } from '../types/presence';
 
 function dotFor(state: PresenceState): { symbol: string; className: string; label: string } {
@@ -13,14 +15,19 @@ function dotFor(state: PresenceState): { symbol: string; className: string; labe
 
 interface Props {
   friends: FriendView[];
+  conversations: ConversationView[];
 }
 
-export const SideTreeContactList: React.FC<Props> = ({ friends }) => {
+export const SideTreeContactList: React.FC<Props> = ({ friends, conversations }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
   const friendIds = friends.map((f) => f.userId);
   const getPresence = usePresence(friendIds);
+  const { dmCount } = useUnread();
+
+  const convByUser = new Map<string, string>();
+  for (const c of conversations) convByUser.set(c.otherUserId, c.id);
 
   const openDm = async (userId: string) => {
     try {
@@ -59,9 +66,19 @@ export const SideTreeContactList: React.FC<Props> = ({ friends }) => {
                     })()}
                     {f.username}
                   </span>
-                  <span className="text-xs text-gray-400" aria-label="unread count">
-                    (0)
-                  </span>
+                  {(() => {
+                    const convId = convByUser.get(f.userId);
+                    const count = convId ? dmCount(convId) : 0;
+                    if (count === 0) return null;
+                    return (
+                      <span
+                        className="ml-1 inline-block bg-blue-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded-full"
+                        aria-label={`${count} unread`}
+                      >
+                        {count}
+                      </span>
+                    );
+                  })()}
                 </Link>
               </li>
             );

@@ -10,6 +10,7 @@ import { useDirectMessages } from '../hooks/useDirectMessages';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
 import type { DirectMessageEvent } from '../hooks/useDirectMessageSocket';
 import { directMessageService } from '../services/directMessageService';
+import { useUnread } from '../hooks/useUnread';
 import type { DirectMessage } from '../types/directMessage';
 import type { Message } from '../types/room';
 
@@ -45,9 +46,13 @@ export const DirectChatPage: React.FC = () => {
   );
 
   const { sendDm } = useDirectMessageSocket(onDmEvent, () => {});
+  const { markDmRead } = useUnread();
 
   useEffect(() => {
-    if (conversationId) loadInitial(conversationId);
+    if (!conversationId) return;
+    loadInitial(conversationId);
+    markDmRead(conversationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId, loadInitial]);
 
   const handleSend = async (text: string) => {

@@ -11,6 +11,7 @@ import { ComposerAttachButton } from '../components/ComposerAttachButton';
 import { AttachmentPreviewChip } from '../components/AttachmentPreviewChip';
 import { roomService } from '../services/roomService';
 import { messageService } from '../services/messageService';
+import { useUnread } from '../hooks/useUnread';
 import type { Message } from '../types/room';
 
 const getCurrentUserId = (): string | null => {
@@ -41,12 +42,14 @@ export const ChatPage: React.FC = () => {
 
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
+  const { markRoomRead } = useUnread();
 
   useEffect(() => {
     if (!roomId) return;
     fetchRoom(roomId);
     loadInitialMessages(roomId);
     roomService.joinRoom(roomId).catch(() => {});
+    markRoomRead(roomId);
 
     if (isConnected) {
       subscribe(roomId, handleEvent);

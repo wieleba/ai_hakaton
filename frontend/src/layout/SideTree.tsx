@@ -2,8 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { roomService } from '../services/roomService';
 import { friendshipService } from '../services/friendshipService';
+import { directMessageService } from '../services/directMessageService';
 import type { ChatRoom } from '../types/room';
 import type { FriendView } from '../types/friendship';
+import type { ConversationView } from '../types/directMessage';
 import { RoomCreateModal } from '../components/RoomCreateModal';
 import { SideTreeRoomList } from './SideTreeRoomList';
 import { SideTreeContactList } from './SideTreeContactList';
@@ -12,6 +14,7 @@ import { SearchDropdown } from './SearchDropdown';
 export const SideTree: React.FC = () => {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [friends, setFriends] = useState<FriendView[]>([]);
+  const [conversations, setConversations] = useState<ConversationView[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const { pathname } = useLocation();
 
@@ -31,10 +34,19 @@ export const SideTree: React.FC = () => {
     }
   }, []);
 
+  const reloadConversations = useCallback(async () => {
+    try {
+      setConversations(await directMessageService.listConversations());
+    } catch (e) {
+      console.error('Failed to load conversations', e);
+    }
+  }, []);
+
   useEffect(() => {
     reloadRooms();
     reloadFriends();
-  }, [reloadRooms, reloadFriends, pathname]);
+    reloadConversations();
+  }, [reloadRooms, reloadFriends, reloadConversations, pathname]);
 
   const publicRooms = useMemo(() => rooms.filter((r) => r.visibility === 'public'), [rooms]);
   const privateRooms = useMemo(() => rooms.filter((r) => r.visibility === 'private'), [rooms]);
@@ -68,7 +80,7 @@ export const SideTree: React.FC = () => {
           />
         </div>
         <div className="py-1 border-t">
-          <SideTreeContactList friends={friends} />
+          <SideTreeContactList friends={friends} conversations={conversations} />
         </div>
       </div>
       <div className="p-2 border-t">
