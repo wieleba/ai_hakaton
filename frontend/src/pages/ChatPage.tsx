@@ -76,6 +76,11 @@ export const ChatPage: React.FC = () => {
     await messageService.deleteMessage(roomId, messageId);
   };
 
+  const handleReact = async (messageId: string, emoji: string) => {
+    if (!roomId) return;
+    await messageService.toggleReaction(roomId, messageId, emoji);
+  };
+
   const handleLeaveRoom = async () => {
     if (roomId) {
       await leaveRoom(roomId);
@@ -118,6 +123,7 @@ export const ChatPage: React.FC = () => {
             onReply={(m) => setReplyTarget(m)}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onReact={handleReact}
           />
           <MessageInput
             ref={inputRef}

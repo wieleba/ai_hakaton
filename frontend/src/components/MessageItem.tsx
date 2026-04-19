@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { Message } from '../types/room';
 import { MessageActionsMenu } from './MessageActionsMenu';
 import { InlineMessageEditor } from './InlineMessageEditor';
+import { ReactionsBar } from './ReactionsBar';
 
 interface Props {
   message: Message;
@@ -9,9 +10,10 @@ interface Props {
   onReply: (m: Message) => void;
   onEdit: (messageId: string, newText: string) => Promise<void>;
   onDelete: (messageId: string) => Promise<void>;
+  onReact: (messageId: string, emoji: string) => void | Promise<void>;
 }
 
-export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, onEdit, onDelete }) => {
+export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, onEdit, onDelete, onReact }) => {
   const [editing, setEditing] = useState(false);
   const isDeleted = !!message.deletedAt;
   const isAuthor = !!currentUserId && message.userId === currentUserId;
@@ -42,6 +44,7 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
             await onDelete(message.id);
           }
         }}
+        onReact={(e) => onReact(message.id, e)}
       />
 
       <div className="flex justify-between items-baseline">
@@ -75,6 +78,10 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
           <p className="text-gray-700 mt-1 whitespace-pre-wrap">{message.text}</p>
         )}
       </div>
+      <ReactionsBar
+        reactions={message.reactions}
+        onToggle={(e) => onReact(message.id, e)}
+      />
     </div>
   );
 };

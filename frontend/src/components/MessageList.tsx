@@ -11,6 +11,7 @@ interface MessageListProps {
   onReply: (m: Message) => void;
   onEdit: (messageId: string, newText: string) => Promise<void>;
   onDelete: (messageId: string) => Promise<void>;
+  onReact: (messageId: string, emoji: string) => Promise<void> | void;
 }
 
 export const MessageList: React.FC<MessageListProps> = ({
@@ -22,6 +23,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   onReply,
   onEdit,
   onDelete,
+  onReact,
 }) => {
   const listRef = useRef<HTMLDivElement>(null);
   const prevNewestIdRef = useRef<string | null>(null);
@@ -68,6 +70,7 @@ export const MessageList: React.FC<MessageListProps> = ({
             onReply={onReply}
             onEdit={onEdit}
             onDelete={onDelete}
+            onReact={onReact}
           />
         ))}
       </div>

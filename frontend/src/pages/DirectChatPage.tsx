@@ -64,6 +64,11 @@ export const DirectChatPage: React.FC = () => {
     await directMessageService.deleteMessage(conversationId, messageId);
   };
 
+  const handleReact = async (messageId: string, emoji: string) => {
+    if (!conversationId) return;
+    await directMessageService.toggleReaction(conversationId, messageId, emoji);
+  };
+
   // Adapt DirectMessage → shape MessageList expects (with username).
   // DmEvent from WebSocket carries senderUsername; REST-fetched messages don't,
   // so fall back to a short userId prefix.
@@ -78,6 +83,7 @@ export const DirectChatPage: React.FC = () => {
     deletedAt: m.deletedAt,
     deletedBy: m.deletedBy,
     replyTo: m.replyTo,
+    reactions: m.reactions,
   }));
 
   const replyPreview = replyTarget && {
@@ -104,6 +110,7 @@ export const DirectChatPage: React.FC = () => {
         onReply={onReplyAdapter}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onReact={handleReact}
       />
       <MessageInput
         ref={inputRef}
