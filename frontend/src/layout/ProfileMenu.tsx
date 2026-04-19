@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChangePasswordModal } from '../components/ChangePasswordModal';
+import { DeleteAccountModal } from '../components/DeleteAccountModal';
 
 interface Props {
   username: string;
@@ -7,6 +9,8 @@ interface Props {
 
 export const ProfileMenu: React.FC<Props> = ({ username }) => {
   const [open, setOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -34,9 +38,30 @@ export const ProfileMenu: React.FC<Props> = ({ username }) => {
         {username} <span aria-hidden>▼</span>
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 mt-1 w-40 bg-white border rounded shadow z-50">
+        <div role="menu" className="absolute right-0 mt-1 w-48 bg-white border rounded shadow z-50">
           <div className="px-3 py-2 text-xs text-gray-500 border-b">Signed in as</div>
           <div className="px-3 py-2 text-sm truncate">{username}</div>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setPasswordOpen(true);
+            }}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+            role="menuitem"
+          >
+            Change password
+          </button>
+          <button
+            onClick={() => {
+              setOpen(false);
+              setDeleteOpen(true);
+            }}
+            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+            role="menuitem"
+          >
+            Delete account
+          </button>
+          <div className="border-t" />
           <button
             onClick={signOut}
             className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
@@ -46,6 +71,9 @@ export const ProfileMenu: React.FC<Props> = ({ username }) => {
           </button>
         </div>
       )}
+
+      <ChangePasswordModal isOpen={passwordOpen} onClose={() => setPasswordOpen(false)} />
+      <DeleteAccountModal isOpen={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </div>
   );
 };
