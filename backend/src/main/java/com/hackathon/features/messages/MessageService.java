@@ -200,6 +200,7 @@ public class MessageService {
   }
 
   private String resolveUsername(UUID userId) {
+    if (userId == null) return "Deleted user";
     try {
       User u = userService.getUserById(userId);
       if (u == null) return userId.toString().substring(0, 8);

@@ -53,4 +53,32 @@ public class UserService {
         .findByUsername(username)
         .orElseThrow(() -> new IllegalArgumentException("User not found"));
   }
+
+  private static final int MIN_PASSWORD_LENGTH = 8;
+
+  public static class WrongPasswordException extends RuntimeException {
+    public WrongPasswordException() { super("Old password is incorrect"); }
+  }
+
+  public void changePassword(UUID userId, String oldPassword, String newPassword) {
+    User user = userRepository
+        .findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+      throw new WrongPasswordException();
+    }
+    if (newPassword == null || newPassword.length() < MIN_PASSWORD_LENGTH) {
+      throw new IllegalArgumentException(
+          "New password must be at least " + MIN_PASSWORD_LENGTH + " characters");
+    }
+    user.setPasswordHash(passwordEncoder.encode(newPassword));
+    userRepository.save(user);
+  }
+
+  public void deleteAccount(UUID userId) {
+    if (!userRepository.existsById(userId)) {
+      throw new IllegalArgumentException("User not found");
+    }
+    userRepository.deleteById(userId);
+  }
 }

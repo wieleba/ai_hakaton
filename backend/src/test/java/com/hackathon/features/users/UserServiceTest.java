@@ -147,4 +147,56 @@ class UserServiceTest {
 
     assertThrows(IllegalArgumentException.class, () -> userService.getUserById(unknownId));
   }
+
+  @Test
+  void changePassword_happyPath_updatesHash() {
+    testUser.setPasswordHash("hashedpassword");
+    when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+    when(passwordEncoder.matches("password12345", "hashedpassword")).thenReturn(true);
+    when(passwordEncoder.encode("newpassword123")).thenReturn("newhashedpassword");
+    when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+    userService.changePassword(testUserId, "password12345", "newpassword123");
+
+    verify(userRepository).save(testUser);
+    assertEquals("newhashedpassword", testUser.getPasswordHash());
+  }
+
+  @Test
+  void changePassword_wrongOldPassword_throws() {
+    testUser.setPasswordHash("hashedpassword");
+    when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+    when(passwordEncoder.matches("wrong-old", "hashedpassword")).thenReturn(false);
+
+    assertThrows(UserService.WrongPasswordException.class,
+        () -> userService.changePassword(testUserId, "wrong-old", "newpassword123"));
+  }
+
+  @Test
+  void changePassword_tooShortNewPassword_throws() {
+    testUser.setPasswordHash("hashedpassword");
+    when(userRepository.findById(testUserId)).thenReturn(Optional.of(testUser));
+    when(passwordEncoder.matches("password12345", "hashedpassword")).thenReturn(true);
+
+    assertThrows(IllegalArgumentException.class,
+        () -> userService.changePassword(testUserId, "password12345", "short"));
+  }
+
+  @Test
+  void deleteAccount_removesUserRow() {
+    when(userRepository.existsById(testUserId)).thenReturn(true);
+
+    userService.deleteAccount(testUserId);
+
+    verify(userRepository).deleteById(testUserId);
+  }
+
+  @Test
+  void deleteAccount_missingUser_throws() {
+    UUID missingId = UUID.randomUUID();
+    when(userRepository.existsById(missingId)).thenReturn(false);
+
+    assertThrows(IllegalArgumentException.class,
+        () -> userService.deleteAccount(missingId));
+  }
 }
