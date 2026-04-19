@@ -31,6 +31,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       if (jwtTokenProvider.validateToken(token)
           && !tokenRevocationService.isRevoked(TokenHashing.sha256Hex(token))) {
         UUID userId = jwtTokenProvider.getUserIdFromToken(token);
+        // Guard: the user row may be gone (account deletion). Leave the context
+        // unauthenticated so the SecurityConfig entry point returns 401 on protected
+        // routes; public routes (/register, /login) continue to work.
         if (userRepository.existsById(userId)) {
           String username = jwtTokenProvider.getUsernameFromToken(token);
           UsernamePasswordAuthenticationToken auth =
