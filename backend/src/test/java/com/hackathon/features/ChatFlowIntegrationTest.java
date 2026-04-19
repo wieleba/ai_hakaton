@@ -17,6 +17,7 @@ import com.hackathon.features.rooms.RoomBanRepository;
 import com.hackathon.features.rooms.RoomMember;
 import com.hackathon.features.rooms.RoomMemberRepository;
 import com.hackathon.features.rooms.RoomMemberService;
+import com.hackathon.features.unread.UnreadService;
 import com.hackathon.features.users.UserService;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -50,6 +51,7 @@ class ChatFlowIntegrationTest {
     @Mock private RoomBanRepository roomBanRepository;
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private StorageService storageService;
+    @Mock private UnreadService unreadService;
 
     // ---- Services (real, wired by Mockito) ----
     @InjectMocks private RoomMemberService roomMemberService;
@@ -64,7 +66,7 @@ class ChatFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository);
-        messageService = new MessageService(messageRepository, messageReactionRepository, messageAttachmentRepository, roomMemberService, userService, messagingTemplate, storageService);
+        messageService = new MessageService(messageRepository, messageReactionRepository, messageAttachmentRepository, roomMemberService, userService, messagingTemplate, storageService, unreadService);
 
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();

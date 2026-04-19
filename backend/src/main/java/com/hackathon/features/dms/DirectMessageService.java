@@ -4,6 +4,8 @@ import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.bans.UserBanRepository;
 import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipRepository;
+import com.hackathon.features.unread.ChatType;
+import com.hackathon.features.unread.UnreadService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.AttachmentSummary;
@@ -41,6 +43,7 @@ public class DirectMessageService {
   private final DirectMessageReactionRepository directMessageReactionRepository;
   private final DirectMessageAttachmentRepository attachmentRepository;
   private final StorageService storageService;
+  private final UnreadService unreadService;
 
   @Transactional
   public DirectMessage send(UUID senderId, UUID conversationId, String text, UUID replyToId) {
@@ -67,6 +70,7 @@ public class DirectMessageService {
             .replyToId(replyToId)
             .build());
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
+    notifyDmUnread(senderId, other, conversationId);
     return saved;
   }
 
@@ -135,6 +139,7 @@ public class DirectMessageService {
               .build());
     }
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
+    notifyDmUnread(senderId, other, conversationId);
     return saved;
   }
 
@@ -329,6 +334,10 @@ public class DirectMessageService {
   private void publishToBoth(UUID a, UUID b, DirectMessageEventEnvelope env) {
     messagingTemplate.convertAndSendToUser(a.toString(), "/queue/dms", env);
     messagingTemplate.convertAndSendToUser(b.toString(), "/queue/dms", env);
+  }
+
+  private void notifyDmUnread(UUID senderId, UUID otherId, UUID conversationId) {
+    unreadService.notifyBump(ChatType.DM, conversationId, List.of(otherId), senderId);
   }
 
   private String resolveUsername(UUID userId) {

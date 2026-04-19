@@ -2,6 +2,8 @@ package com.hackathon.features.messages;
 
 import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.rooms.RoomMemberService;
+import com.hackathon.features.unread.ChatType;
+import com.hackathon.features.unread.UnreadService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.AttachmentSummary;
@@ -33,6 +35,7 @@ public class MessageService {
   private final UserService userService;
   private final SimpMessagingTemplate messagingTemplate;
   private final StorageService storageService;
+  private final UnreadService unreadService;
 
   @Transactional
   public Message sendMessage(UUID roomId, UUID userId, String text, UUID replyToId) {
@@ -55,6 +58,7 @@ public class MessageService {
             .replyToId(replyToId)
             .build());
     publish(MessageEventEnvelope.created(toDto(saved)));
+    unreadService.notifyBump(ChatType.ROOM, roomId, roomMemberService.getMembers(roomId), userId);
     return saved;
   }
 
@@ -122,6 +126,7 @@ public class MessageService {
     }
 
     publish(MessageEventEnvelope.created(toDto(saved)));
+    unreadService.notifyBump(ChatType.ROOM, roomId, roomMemberService.getMembers(roomId), userId);
     return saved;
   }
 
