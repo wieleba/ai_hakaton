@@ -123,13 +123,19 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-19-attachments.md` (12 tasks — all complete)
 - **Status: COMPLETE**
 
-## Planned Features
+### Feature #7: User Presence ✅
+- Three states (ONLINE / AFK / OFFLINE) aggregated per user from any number of active WS sessions
+- Redis-backed session registry + pub/sub for cross-instance fan-out (every replica sees every state change)
+- Client AFK detection: throttled activity listeners + 60s idle threshold; heartbeat every 30s; server watchdog evicts sessions >90s stale
+- REST snapshot `GET /api/presence?userIds=...` + STOMP topic `/topic/presence` delta stream
+- Frontend: `usePresence` shared-state hook + `useAfkTracking` installed once in `AppShell`; `SideTreeContactList` + `RoomMembersPanel` render live states
+- Backend tests: `InMemoryPresenceServiceTest` (10), `PresenceEventListenerTest` (4), `PresenceMessageHandlerTest` (4), `PresenceWatchdogTest` (2), `PresenceControllerTest` (2)
+- Sessions-management (active-session list, log out from specific session) split to Feature #12
+- Spec: `docs/superpowers/specs/2026-04-19-presence-design.md`
+- Plan: `docs/superpowers/plans/2026-04-19-presence.md` (11 tasks — all complete)
+- **Status: COMPLETE**
 
-### Feature #7: User Presence & Session Management
-- Presence states: online / AFK (≥1 min inactive) / offline
-- Multi-tab support (online if active in ANY tab)
-- Active session list (browser/IP), logout from specific sessions
-- **Status: TODO**
+## Planned Features
 
 ### Feature #8: Account Management ✅
 - Password change for logged-in users — `PATCH /api/users/me/password` requires old password and min-8-char new password (403 on wrong old, 400 on too short)
@@ -174,6 +180,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 9 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds) + polish (emoji picker + reactions, chat ordering)
+- **Completed:** 10 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence) + polish (emoji picker + reactions, chat ordering)
 - **In progress:** 0
-- **Remaining:** 2 (Presence/Sessions, Password Reset)
+- **Remaining:** 3 (Password Reset, Sessions Management, Server-side Embed Metadata)
