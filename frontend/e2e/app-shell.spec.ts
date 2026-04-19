@@ -84,7 +84,10 @@ test.describe('App shell', () => {
 
     const searchBox = searcherPage.getByPlaceholder('Search rooms or users…');
     await searchBox.click();
-    await searchBox.fill(roomName.slice(0, 8));
+    // Use the full room name — the DB accumulates rooms across runs, and the
+    // SearchService returns only 5 rows ordered by name, so a short prefix
+    // may push the fresh room out of the result page.
+    await searchBox.fill(roomName);
     await expect(searcherPage.locator('body')).toContainText(roomName, { timeout: 5_000 });
     await searcherPage.getByRole('button', { name: new RegExp(`# ${roomName}`) }).click();
     await searcherPage.waitForURL(/.*\/rooms\/[0-9a-f-]{36}$/);
