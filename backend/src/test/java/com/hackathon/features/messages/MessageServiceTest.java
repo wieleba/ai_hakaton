@@ -7,6 +7,7 @@ import com.hackathon.features.rooms.ChatRoomService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.ChatMessageDTO;
+import java.io.ByteArrayInputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 class MessageServiceTest {
   @Autowired private MessageRepository messageRepository;
   @Autowired private MessageReactionRepository messageReactionRepository;
+  @Autowired MessageAttachmentRepository attachmentRepository;
   @Autowired private MessageService messageService;
   @Autowired private ChatRoomService chatRoomService;
   @Autowired private UserService userService;
@@ -237,5 +239,56 @@ class MessageServiceTest {
     var heart = dto.getReactions().stream().filter(r -> "\u2764\uFE0F".equals(r.emoji())).findFirst().orElseThrow();
     assertEquals(1, heart.count());
     assertTrue(heart.reactedByMe()); // caller was B; B just added heart
+  }
+
+  @Test
+  void sendMessage_withAttachment_storesFile_andPopulatesDto() {
+    User author = registerUser("a");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    byte[] bytes = new byte[]{1, 2, 3, 4};
+    Message m = messageService.sendMessage(
+        room.getId(), author.getId(), "with file",
+        null, "hello.png", "image/png", bytes.length,
+        new ByteArrayInputStream(bytes));
+    ChatMessageDTO dto = messageService.toDto(m);
+    assertNotNull(dto.getAttachment());
+    assertEquals("hello.png", dto.getAttachment().filename());
+    assertEquals("image/png", dto.getAttachment().mimeType());
+    assertEquals(4L, dto.getAttachment().sizeBytes());
+  }
+
+  @Test
+  void sendMessage_withBadMime_rejected() {
+    User author = registerUser("a");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    byte[] bytes = "<svg/>".getBytes();
+    assertThrows(IllegalArgumentException.class,
+        () -> messageService.sendMessage(
+            room.getId(), author.getId(), null,
+            null, "evil.svg", "image/svg+xml", bytes.length,
+            new ByteArrayInputStream(bytes)));
+  }
+
+  @Test
+  void sendMessage_noTextNoFile_rejected() {
+    User author = registerUser("a");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    assertThrows(IllegalArgumentException.class,
+        () -> messageService.sendMessage(
+            room.getId(), author.getId(), null, null, null, null, 0, null));
+  }
+
+  @Test
+  void deleteMessage_withAttachment_removesAttachmentRow() {
+    User author = registerUser("a");
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+    byte[] bytes = "hi".getBytes();
+    Message m = messageService.sendMessage(
+        room.getId(), author.getId(), null, null,
+        "file.txt", "text/plain", bytes.length,
+        new ByteArrayInputStream(bytes));
+    assertTrue(attachmentRepository.findByMessageId(m.getId()).isPresent());
+    messageService.deleteMessage(m.getId(), author.getId());
+    assertTrue(attachmentRepository.findByMessageId(m.getId()).isEmpty());
   }
 }

@@ -1,12 +1,16 @@
 package com.hackathon.features.messages;
 
+import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.rooms.RoomMemberService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
+import com.hackathon.shared.dto.AttachmentSummary;
 import com.hackathon.shared.dto.ChatMessageDTO;
 import com.hackathon.shared.dto.MessageEventEnvelope;
 import com.hackathon.shared.dto.MessagePreview;
 import com.hackathon.shared.dto.ReactionSummary;
+import com.hackathon.shared.storage.StorageService;
+import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -24,9 +28,11 @@ public class MessageService {
 
   private final MessageRepository messageRepository;
   private final MessageReactionRepository messageReactionRepository;
+  private final MessageAttachmentRepository attachmentRepository;
   private final RoomMemberService roomMemberService;
   private final UserService userService;
   private final SimpMessagingTemplate messagingTemplate;
+  private final StorageService storageService;
 
   @Transactional
   public Message sendMessage(UUID roomId, UUID userId, String text, UUID replyToId) {
@@ -58,6 +64,68 @@ public class MessageService {
   }
 
   @Transactional
+  public Message sendMessage(
+      UUID roomId,
+      UUID userId,
+      String text,
+      UUID replyToId,
+      String filename,
+      String mimeType,
+      long size,
+      InputStream content) {
+    if (!roomMemberService.isMember(roomId, userId)) {
+      throw new IllegalArgumentException("User is not a member of this room");
+    }
+    boolean hasText = text != null && !text.trim().isEmpty();
+    boolean hasFile = content != null;
+    if (!hasText && !hasFile) {
+      throw new IllegalArgumentException("Message must contain text or a file");
+    }
+    if (hasText && text.length() > MAX_MESSAGE_SIZE) {
+      throw new IllegalArgumentException(
+          "Message exceeds maximum size of " + MAX_MESSAGE_SIZE + " bytes");
+    }
+    if (hasFile) {
+      if (!AttachmentPolicy.isAllowed(mimeType)) {
+        throw new IllegalArgumentException("File type not allowed: " + mimeType);
+      }
+      if (size <= 0 || size > AttachmentPolicy.MAX_SIZE_BYTES) {
+        throw new IllegalArgumentException("File size outside allowed range");
+      }
+    }
+    if (replyToId != null) {
+      Message parent = messageRepository
+          .findById(replyToId)
+          .orElseThrow(() -> new IllegalArgumentException("Reply target not found"));
+      if (!parent.getRoomId().equals(roomId)) {
+        throw new IllegalArgumentException("Reply target is in a different room");
+      }
+    }
+    Message saved = messageRepository.save(
+        Message.builder()
+            .roomId(roomId)
+            .userId(userId)
+            .text(hasText ? text : "")
+            .replyToId(replyToId)
+            .build());
+
+    if (hasFile) {
+      String storageKey = storageService.store(content, size, mimeType);
+      attachmentRepository.save(
+          MessageAttachment.builder()
+              .messageId(saved.getId())
+              .filename(filename)
+              .mimeType(mimeType)
+              .sizeBytes(size)
+              .storageKey(storageKey)
+              .build());
+    }
+
+    publish(MessageEventEnvelope.created(toDto(saved)));
+    return saved;
+  }
+
+  @Transactional
   public Message editMessage(UUID messageId, UUID callerId, String newText) {
     Message m = messageRepository.findById(messageId)
         .orElseThrow(() -> new IllegalArgumentException("Message not found"));
@@ -85,6 +153,10 @@ public class MessageService {
     if (m.getDeletedAt() != null) {
       return; // idempotent
     }
+    attachmentRepository.findByMessageId(messageId).ifPresent(att -> {
+      storageService.delete(att.getStorageKey());
+      attachmentRepository.delete(att);
+    });
     m.setDeletedAt(OffsetDateTime.now());
     m.setDeletedBy(callerId);
     Message saved = messageRepository.save(m);
@@ -128,6 +200,12 @@ public class MessageService {
         preview = new MessagePreview(p.getId(), resolveUsername(p.getUserId()), snippet);
       }
     }
+    AttachmentSummary attachmentSummary = null;
+    if (m.getDeletedAt() == null) {
+      attachmentSummary = attachmentRepository.findByMessageId(m.getId())
+          .map(a -> new AttachmentSummary(a.getId(), a.getFilename(), a.getMimeType(), a.getSizeBytes()))
+          .orElse(null);
+    }
     return ChatMessageDTO.builder()
         .id(m.getId())
         .roomId(m.getRoomId())
@@ -140,6 +218,7 @@ public class MessageService {
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
         .reactions(buildReactions(m.getId(), callerId))
+        .attachment(attachmentSummary)
         .build();
   }
 

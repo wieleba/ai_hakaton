@@ -6,9 +6,11 @@ import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/rooms/{roomId}/messages")
@@ -48,6 +50,27 @@ public class MessageController {
     Message message =
         messageService.sendMessage(roomId, userId, request.text(), request.replyToId());
     return ResponseEntity.ok(messageService.toDto(message));
+  }
+
+  @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<ChatMessageDTO> sendMessageMultipart(
+      @PathVariable UUID roomId,
+      @RequestParam(value = "text", required = false) String text,
+      @RequestParam(value = "replyToId", required = false) UUID replyToId,
+      @RequestParam(value = "file", required = false) MultipartFile file,
+      Authentication authentication) throws java.io.IOException {
+    UUID userId = currentUserId(authentication);
+    String filename = file != null ? file.getOriginalFilename() : null;
+    String mimeType = file != null ? file.getContentType() : null;
+    long size = file != null ? file.getSize() : 0L;
+    java.io.InputStream content = file != null ? file.getInputStream() : null;
+    try {
+      Message message =
+          messageService.sendMessage(roomId, userId, text, replyToId, filename, mimeType, size, content);
+      return ResponseEntity.ok(messageService.toDto(message));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
   }
 
   @PatchMapping("/{messageId}")

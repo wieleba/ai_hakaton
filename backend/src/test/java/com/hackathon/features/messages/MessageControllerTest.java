@@ -8,6 +8,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.hamcrest.Matchers;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
 import com.hackathon.features.rooms.ChatRoom;
 import com.hackathon.features.rooms.ChatRoomService;
 import com.hackathon.features.users.User;
@@ -135,5 +139,42 @@ class MessageControllerTest {
                 .header("Authorization", "Bearer " + token))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[?(@.replyTo != null)].replyTo.textPreview").value(hasItem("[deleted]")));
+  }
+
+  @Test
+  void sendMessage_multipart_withImage_returnsDtoWithAttachment() throws Exception {
+    User author = registerUser("a");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+
+    var filePart = new MockMultipartFile(
+        "file", "pic.png", "image/png", new byte[]{1, 2, 3});
+
+    mvc.perform(
+            MockMvcRequestBuilders
+                .multipart("/api/rooms/{roomId}/messages", room.getId())
+                .file(filePart)
+                .param("text", "hello")
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachment.filename").value("pic.png"))
+        .andExpect(jsonPath("$.attachment.mimeType").value("image/png"));
+  }
+
+  @Test
+  void sendMessage_multipart_withBadMime_returns400() throws Exception {
+    User author = registerUser("a");
+    String token = jwtTokenProvider.generateToken(author.getId(), author.getUsername());
+    ChatRoom room = chatRoomService.createRoom("r-" + System.nanoTime(), null, author.getId(), "public");
+
+    var filePart = new MockMultipartFile(
+        "file", "evil.svg", "image/svg+xml", "<svg/>".getBytes());
+
+    mvc.perform(
+            MockMvcRequestBuilders
+                .multipart("/api/rooms/{roomId}/messages", room.getId())
+                .file(filePart)
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isBadRequest());
   }
 }
