@@ -86,5 +86,29 @@ export const useWebSocket = () => {
     websocketService.send(`/app/rooms/${roomId}/message`, { text, replyToId: replyToId ?? null });
   }, []);
 
-  return { isConnected, error, subscribe, unsubscribe, sendMessage };
+  const sendRaw = useCallback((destination: string, body: object = {}) => {
+    if (!websocketService.isConnected()) {
+      throw new Error('WebSocket not connected');
+    }
+    websocketService.send(destination, body as Record<string, unknown>);
+  }, []);
+
+  const subscribeDestination = useCallback(
+    (destination: string, onPayload: (payload: Record<string, unknown>) => void) => {
+      if (!websocketService.isConnected()) {
+        console.warn('WebSocket not connected; skipping subscribe');
+        return;
+      }
+      const existing = subsRef.current.get(destination);
+      if (existing) existing.unsubscribe();
+
+      const sub = websocketService.subscribe(destination, (msg) => {
+        onPayload(msg);
+      });
+      subsRef.current.set(destination, sub);
+    },
+    [],
+  );
+
+  return { isConnected, error, subscribe, unsubscribe, sendMessage, sendRaw, subscribeDestination };
 };
