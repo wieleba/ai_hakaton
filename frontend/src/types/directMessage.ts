@@ -1,5 +1,6 @@
 import type { Friendship } from './friendship';
 import type { MessagePreview, ReactionSummary } from './room';
+import type { AttachmentSummary } from './attachment';
 
 export interface DirectConversation {
   id: string;
@@ -28,6 +29,7 @@ export interface DirectMessage {
   deletedBy?: string | null;
   replyTo?: MessagePreview | null;
   reactions?: ReactionSummary[];
+  attachment?: AttachmentSummary | null;
 }
 
 export type FriendEvent =

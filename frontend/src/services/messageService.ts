@@ -34,4 +34,20 @@ export const messageService = {
   ): Promise<Message> {
     return (await axios.post(`/api/rooms/${roomId}/messages/${messageId}/reactions`, { emoji })).data;
   },
+
+  async sendMessageWithAttachment(
+    roomId: string,
+    text: string,
+    file: File,
+    replyToId?: string,
+  ): Promise<Message> {
+    const form = new FormData();
+    if (text.trim().length > 0) form.append('text', text);
+    if (replyToId) form.append('replyToId', replyToId);
+    form.append('file', file);
+    const response = await axios.post(`/api/rooms/${roomId}/messages`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };

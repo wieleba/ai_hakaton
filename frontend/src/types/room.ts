@@ -1,3 +1,5 @@
+import type { AttachmentSummary } from './attachment';
+
 export interface User {
   id: string;
   username: string;
@@ -38,6 +40,7 @@ export interface Message {
   deletedBy?: string | null;
   replyTo?: MessagePreview | null;
   reactions?: ReactionSummary[];
+  attachment?: AttachmentSummary | null;
 }
 
 export interface RoomMember {

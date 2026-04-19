@@ -45,4 +45,20 @@ export const directMessageService = {
   ): Promise<DirectMessage> {
     return (await axios.post(`/api/dms/${conversationId}/messages/${messageId}/reactions`, { emoji })).data;
   },
+
+  async sendMessageWithAttachment(
+    conversationId: string,
+    text: string,
+    file: File,
+    replyToId?: string,
+  ): Promise<DirectMessage> {
+    const form = new FormData();
+    if (text.trim().length > 0) form.append('text', text);
+    if (replyToId) form.append('replyToId', replyToId);
+    form.append('file', file);
+    const response = await axios.post(`/api/dms/${conversationId}/messages`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  },
 };
