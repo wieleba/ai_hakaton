@@ -7,6 +7,8 @@ import { MessageList } from '../components/MessageList';
 import { MessageInput, MessageInputHandle } from '../components/MessageInput';
 import { ReplyPill } from '../components/ReplyPill';
 import { EmojiPickerButton } from '../components/EmojiPickerButton';
+import { ComposerAttachButton } from '../components/ComposerAttachButton';
+import { AttachmentPreviewChip } from '../components/AttachmentPreviewChip';
 import { roomService } from '../services/roomService';
 import { messageService } from '../services/messageService';
 import type { Message } from '../types/room';
@@ -38,6 +40,7 @@ export const ChatPage: React.FC = () => {
   } = useWebSocket();
 
   const [replyTarget, setReplyTarget] = useState<Message | null>(null);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!roomId) return;
@@ -55,14 +58,24 @@ export const ChatPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, isConnected]);
 
-  const handleSend = (text: string) => {
-    if (roomId && isConnected) {
+  const handleSend = async (text: string) => {
+    if (!roomId) return;
+    if (stagedFile) {
       try {
-        sendWebSocketMessage(roomId, text, replyTarget?.id);
+        await messageService.sendMessageWithAttachment(roomId, text, stagedFile, replyTarget?.id);
+        setStagedFile(null);
         setReplyTarget(null);
       } catch (err) {
-        console.error('Failed to send message:', err);
+        console.error('Failed to send message with attachment:', err);
       }
+      return;
+    }
+    if (!isConnected) return;
+    try {
+      sendWebSocketMessage(roomId, text, replyTarget?.id);
+      setReplyTarget(null);
+    } catch (err) {
+      console.error('Failed to send message:', err);
     }
   };
 
@@ -128,10 +141,14 @@ export const ChatPage: React.FC = () => {
           <MessageInput
             ref={inputRef}
             onSend={handleSend}
-            disabled={!isConnected}
+            disabled={!isConnected && !stagedFile}
             actions={
               <>
+                <ComposerAttachButton onFile={(f) => setStagedFile(f)} disabled={!!stagedFile} />
                 <EmojiPickerButton onPick={(e) => inputRef.current?.insertText(e)} />
+                {stagedFile && (
+                  <AttachmentPreviewChip file={stagedFile} onRemove={() => setStagedFile(null)} />
+                )}
                 {replyPreview && (
                   <ReplyPill
                     authorUsername={replyPreview.authorUsername}

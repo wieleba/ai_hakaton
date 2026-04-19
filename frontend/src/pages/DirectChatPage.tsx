@@ -4,6 +4,8 @@ import { MessageList } from '../components/MessageList';
 import { MessageInput, MessageInputHandle } from '../components/MessageInput';
 import { ReplyPill } from '../components/ReplyPill';
 import { EmojiPickerButton } from '../components/EmojiPickerButton';
+import { ComposerAttachButton } from '../components/ComposerAttachButton';
+import { AttachmentPreviewChip } from '../components/AttachmentPreviewChip';
 import { useDirectMessages } from '../hooks/useDirectMessages';
 import { useDirectMessageSocket } from '../hooks/useDirectMessageSocket';
 import type { DirectMessageEvent } from '../hooks/useDirectMessageSocket';
@@ -30,6 +32,7 @@ export const DirectChatPage: React.FC = () => {
     useDirectMessages(conversationId);
 
   const [replyTarget, setReplyTarget] = useState<DirectMessage | null>(null);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
 
   const onDmEvent = useCallback(
     (event: DirectMessageEvent) => {
@@ -47,10 +50,23 @@ export const DirectChatPage: React.FC = () => {
     if (conversationId) loadInitial(conversationId);
   }, [conversationId, loadInitial]);
 
-  const handleSend = (text: string) => {
-    if (conversationId) {
+  const handleSend = async (text: string) => {
+    if (!conversationId) return;
+    if (stagedFile) {
+      try {
+        await directMessageService.sendMessageWithAttachment(conversationId, text, stagedFile, replyTarget?.id);
+        setStagedFile(null);
+        setReplyTarget(null);
+      } catch (err) {
+        console.error('Failed to send DM with attachment:', err);
+      }
+      return;
+    }
+    try {
       sendDm(conversationId, text, replyTarget?.id);
       setReplyTarget(null);
+    } catch (err) {
+      console.error('Failed to send DM:', err);
     }
   };
 
@@ -84,6 +100,7 @@ export const DirectChatPage: React.FC = () => {
     deletedBy: m.deletedBy,
     replyTo: m.replyTo,
     reactions: m.reactions,
+    attachment: m.attachment,
   }));
 
   const replyPreview = replyTarget && {
@@ -118,7 +135,11 @@ export const DirectChatPage: React.FC = () => {
         disabled={!conversationId}
         actions={
           <>
+            <ComposerAttachButton onFile={(f) => setStagedFile(f)} disabled={!!stagedFile} />
             <EmojiPickerButton onPick={(e) => inputRef.current?.insertText(e)} />
+            {stagedFile && (
+              <AttachmentPreviewChip file={stagedFile} onRemove={() => setStagedFile(null)} />
+            )}
             {replyPreview && (
               <ReplyPill
                 authorUsername={replyPreview.authorUsername}
