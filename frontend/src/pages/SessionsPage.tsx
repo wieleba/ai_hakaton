@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { sessionsService } from '../services/sessionsService';
+import { websocketService } from '../services/websocketService';
 import type { SessionRow } from '../types/session';
 
 const POLL_MS = 30_000;
@@ -60,6 +61,7 @@ export const SessionsPage: React.FC = () => {
   };
 
   const otherCount = rows ? rows.filter((r) => !r.current).length : 0;
+  const sessionIdReady = websocketService.getSessionId() !== null;
 
   return (
     <div className="p-8 max-w-3xl">
@@ -70,7 +72,8 @@ export const SessionsPage: React.FC = () => {
         </div>
         <button
           onClick={onLogoutOthers}
-          disabled={busy || otherCount === 0}
+          disabled={busy || otherCount === 0 || !sessionIdReady}
+          title={!sessionIdReady ? 'Still connecting — try again shortly' : undefined}
           className="px-3 py-2 border rounded text-sm disabled:opacity-50 hover:bg-red-50"
         >
           Log out everywhere else
