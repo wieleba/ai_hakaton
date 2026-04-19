@@ -4,6 +4,7 @@ import { TopMenu } from './TopMenu';
 import { RightPanel } from './RightPanel';
 import { SideTree } from './SideTree';
 import { useAfkTracking } from '../hooks/useAfkTracking';
+import { useEvictedSessionWatcher } from '../hooks/useEvictedSessionWatcher';
 
 const getUsername = (): string => {
   const token = localStorage.getItem('authToken');
@@ -18,6 +19,7 @@ const getUsername = (): string => {
 
 export const AppShell: React.FC = () => {
   useAfkTracking();
+  useEvictedSessionWatcher();
   const username = getUsername();
   return (
     <div className="flex flex-col h-screen">

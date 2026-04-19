@@ -13,12 +13,8 @@ class WebSocketService {
   private client: Stomp.Client | null = null;
   private pendingConnection: Promise<void> | null = null;
   private subscriptions: Map<string, Subscription> = new Map();
+  private sessionId: string | null = null;
 
-  /**
-   * Idempotent connect. Safe to call on every hook mount — if already
-   * connected, resolves immediately; if connecting, returns the in-flight
-   * promise; if disconnected, opens a fresh connection.
-   */
   connect(token?: string): Promise<void> {
     if (this.client && this.client.connected) return Promise.resolve();
     if (this.pendingConnection) return this.pendingConnection;
@@ -26,7 +22,6 @@ class WebSocketService {
     this.pendingConnection = new Promise<void>((resolve, reject) => {
       const socket = new SockJS('/ws/chat');
       const client = Stomp.over(socket);
-      // Silence the noisy default stomp debug logger
       client.debug = () => {};
       this.client = client;
 
@@ -34,13 +29,14 @@ class WebSocketService {
         {
           ...(token && { Authorization: `Bearer ${token}` }),
         },
-        () => {
+        (frame?: { headers?: Record<string, string> }) => {
           this.pendingConnection = null;
+          this.sessionId = frame?.headers?.session ?? null;
           resolve();
         },
         (error: unknown) => {
           this.pendingConnection = null;
-          // Only clear the reference if no later connect attempt has replaced it.
+          this.sessionId = null;
           if (this.client === client) this.client = null;
           reject(new Error(`WebSocket connection failed: ${String(error)}`));
         },
@@ -59,11 +55,12 @@ class WebSocketService {
 
     if (client.connected) {
       client.disconnect(() => {
-        // Only null out if nobody has installed a new client while we waited.
         if (this.client === client) this.client = null;
+        this.sessionId = null;
       });
     } else {
       if (this.client === client) this.client = null;
+      this.sessionId = null;
     }
   }
 
@@ -74,9 +71,6 @@ class WebSocketService {
     if (!this.client || !this.client.connected) {
       throw new Error('WebSocket not connected');
     }
-
-    // Drop any pre-existing subscription for the same destination so callers
-    // don't accumulate dead callbacks on component remounts.
     const existing = this.subscriptions.get(destination);
     if (existing) existing.unsubscribe();
 
@@ -93,8 +87,6 @@ class WebSocketService {
     const wrapped: Subscription = {
       unsubscribe: () => {
         raw.unsubscribe();
-        // Only remove the Map entry if it's still us — prevents an old
-        // cleanup from nuking a freshly-installed subscription.
         if (this.subscriptions.get(destination) === wrapped) {
           this.subscriptions.delete(destination);
         }
@@ -114,6 +106,10 @@ class WebSocketService {
 
   isConnected(): boolean {
     return this.client?.connected ?? false;
+  }
+
+  getSessionId(): string | null {
+    return this.sessionId;
   }
 }
 

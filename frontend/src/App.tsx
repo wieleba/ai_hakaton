@@ -8,7 +8,7 @@ import { ChatPage } from './pages/ChatPage';
 import { FriendsPage } from './pages/FriendsPage';
 import { DirectMessagesPage } from './pages/DirectMessagesPage';
 import { DirectChatPage } from './pages/DirectChatPage';
-import { SessionsStub } from './pages/SessionsStub';
+import { SessionsPage } from './pages/SessionsPage';
 
 export default function App() {
   return (
@@ -30,7 +30,7 @@ export default function App() {
             <Route path="/friends" element={<FriendsPage />} />
             <Route path="/dms" element={<DirectMessagesPage />} />
             <Route path="/dms/:conversationId" element={<DirectChatPage />} />
-            <Route path="/sessions" element={<SessionsStub />} />
+            <Route path="/sessions" element={<SessionsPage />} />
             <Route path="/" element={<Navigate to="/rooms" replace />} />
           </Route>
         </Routes>

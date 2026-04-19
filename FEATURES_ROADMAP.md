@@ -135,6 +135,18 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-19-presence.md` (11 tasks — all complete)
 - **Status: COMPLETE**
 
+### Feature #12: Sessions Management (split out of #7) ✅
+- Active WebSocket session list per user (browser user-agent, IP, connected-at, last-seen) — `PresenceEntry` carries per-session metadata; surfaced via `GET /api/sessions`
+- "Log out from this session" action — `DELETE /api/sessions/{sessionId}` revokes the JWT, disconnects the WS, and fans out an `EVICTED` frame on `/user/{uuid}/queue/sessions`
+- "Log out everywhere else" — `DELETE /api/sessions/others` rejects stale `X-Session-Id`, revokes every sibling token, returns `revokedCount`
+- Token revocation backed by Redis `revoked_token:{sha256(jwt)}` set (TTL = remaining JWT lifetime); enforced on both REST (`JwtAuthenticationFilter`) and WS (`CONNECT` interceptor)
+- Frontend: `SessionsPage` replaces the stub (live table with per-row log-out + bulk log-out-others), `useEvictedSessionWatcher` redirects the current tab to `/login` when it's the one being kicked, axios interceptor attaches `X-Session-Id` on every request
+- Backend tests: `TokenRevocationServiceTest`, `SessionsControllerTest`, `SessionsFlowIntegrationTest` (list / log-out-self / log-out-others / stale-session guard)
+- Completed 2026-04-19
+- Spec: `docs/superpowers/specs/2026-04-19-sessions-management-design.md`
+- Plan: `docs/superpowers/plans/2026-04-19-sessions-management.md` (5 tasks — all complete)
+- **Status: COMPLETE**
+
 ## Planned Features
 
 ### Feature #8: Account Management ✅
@@ -156,18 +168,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
 - **Status: TODO**
 
-### Feature #12: Sessions Management (split out of #7)
-- Active WebSocket session list per user (browser user-agent, IP, connected-at, last-seen)
-- "Log out from this session" action — server disconnects the WS session
-- Token revocation so a disconnected session can't reconnect with the same JWT (Redis-backed `revoked_token:{sha256(jwt)}` set, TTL = remaining JWT lifetime)
-- Split out of Feature #7 so the presence work can ship fast; sessions management is security-adjacent and needs more care (token revocation strategy, audit trail)
-- **Status: IN PROGRESS**
-  - Task 1 (per-session PresenceEntry metadata) — DONE
-  - Task 2 (capture UA/IP/tokenHash on WS handshake) — DONE
-  - Task 3 (TokenRevocationService + REST filter + WS CONNECT enforcement) — DONE
-  - Task 4 (Sessions REST API + log-out-session) — DONE
-  - Task 5 (Frontend /sessions page + plumbing) — PENDING
-
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
 - Persist `message_embeds` table per message with `kind`, `source_url`, `canonical_id`, cached `title`, `thumbnail_url`
@@ -185,6 +185,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 10 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence) + polish (emoji picker + reactions, chat ordering)
+- **Completed:** 11 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management) + polish (emoji picker + reactions, chat ordering)
 - **In progress:** 0
-- **Remaining:** 3 (Password Reset, Sessions Management, Server-side Embed Metadata)
+- **Remaining:** 2 (Password Reset, Server-side Embed Metadata)
