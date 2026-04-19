@@ -115,9 +115,15 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Status: TODO**
 
 ### Feature #8: Account Management
-- Password reset
 - Password change (for logged-in users)
 - Account deletion cascades (owned rooms + messages + files deleted; memberships removed)
+- **Status: TODO**
+
+### Feature #9: Password Reset (split out of #8)
+- Forgot-password request by email → time-limited reset token
+- Email delivery (SMTP / local dev mailhog fallback)
+- Reset page that consumes the token + sets a new password
+- Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
 - **Status: TODO**
 
 ## Key Architecture Notes
