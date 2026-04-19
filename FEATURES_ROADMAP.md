@@ -99,6 +99,16 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - `MessageList` displays oldest-first, newest-last (classic chat layout); hook state stays newest-first so WS event handling is unchanged
 - Scroll snaps to bottom only on a genuinely new message (newest id changed); loading older history preserves scroll position
 
+### Feature #10: YouTube link embeds in messages ✅
+- Detect YouTube URLs in message text (youtube.com/watch, youtu.be, youtube.com/shorts, youtube.com/embed)
+- Inline `<iframe>` player using `youtube-nocookie.com` (privacy mode — no cookies until play)
+- Frontend-only: `extractYouTubeIds` utility + `YouTubeEmbed` component + `MessageItem` integration
+- Works retroactively on all historical messages without any migration
+- Multiple videos per message supported (deduped, rendered in encounter order)
+- Extra URL params (e.g. `&t=30s`) ignored; embeds play from the start
+- Tests: 9 unit-test cases covering URL shape variants, dedup, order, non-matches
+- **Status: COMPLETE**
+
 ### Feature #6: Attachments (File & Image Sharing) ✅
 - One attachment per chat-room or direct-message (multi-attachment deferred)
 - S3-compatible object storage (MinIO in docker-compose; any S3 endpoint in prod — every backend replica sees the same bytes)
@@ -140,14 +150,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
 - **Status: TODO**
 
-### Feature #10: YouTube link embeds in messages
-- Detect YouTube URLs in message text (youtube.com/watch, youtu.be, youtube.com/shorts)
-- Render an embedded `<iframe>` player inline in the message, below the text
-- Frontend-only feature: URL detection + regex to extract video id + `youtube-nocookie.com` iframe for privacy
-- Works in both chat rooms and direct messages; no backend / schema changes
-- Does not replace the existing message text — link stays clickable and the embed renders below it
-- **Status: TODO**
-
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
 - Persist `message_embeds` table per message with `kind`, `source_url`, `canonical_id`, cached `title`, `thumbnail_url`
@@ -165,6 +167,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 8 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments) + polish (emoji picker + reactions, chat ordering)
+- **Completed:** 9 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds) + polish (emoji picker + reactions, chat ordering)
 - **In progress:** 0
-- **Remaining:** 3 (Presence/Sessions, Password Reset, YouTube Embeds)
+- **Remaining:** 2 (Presence/Sessions, Password Reset)
