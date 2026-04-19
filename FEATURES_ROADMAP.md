@@ -133,6 +133,14 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
 - **Status: TODO**
 
+### Feature #10: YouTube link embeds in messages
+- Detect YouTube URLs in message text (youtube.com/watch, youtu.be, youtube.com/shorts)
+- Render an embedded `<iframe>` player inline in the message, below the text
+- Frontend-only feature: URL detection + regex to extract video id + `youtube-nocookie.com` iframe for privacy
+- Works in both chat rooms and direct messages; no backend / schema changes
+- Does not replace the existing message text — link stays clickable and the embed renders below it
+- **Status: TODO**
+
 ## Key Architecture Notes
 - **Backend:** Spring Boot 3.5.12, Java 25, Gradle 9.4.1, PostgreSQL 15, Flyway
 - **Frontend:** React 19, TypeScript, Vite, axios, @stomp/stompjs + sockjs-client
