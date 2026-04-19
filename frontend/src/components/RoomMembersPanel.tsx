@@ -7,6 +7,7 @@ import { useRoomMembersWithRole } from '../hooks/useRoomMembersWithRole';
 import { InviteUserModal } from './InviteUserModal';
 import { ManageRoomModal } from './ManageRoomModal';
 import { useRoomAdminActions } from '../hooks/useRoomAdminActions';
+import { usePresence } from '../hooks/usePresence';
 
 interface Props {
   roomId: string;
@@ -57,10 +58,18 @@ export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => 
     return null;
   };
 
-  // Presence groupings — all members are Offline until Feature #7 lights them up.
+  const memberIds = members.map((m) => m.userId);
+  const getPresence = usePresence(memberIds);
+
   const online: RoomMemberView[] = [];
   const afk: RoomMemberView[] = [];
-  const offline: RoomMemberView[] = members;
+  const offline: RoomMemberView[] = [];
+  for (const m of members) {
+    const state = getPresence(m.userId);
+    if (state === 'ONLINE') online.push(m);
+    else if (state === 'AFK') afk.push(m);
+    else offline.push(m);
+  }
 
   const renderGroup = (title: string, dot: string, list: RoomMemberView[]) => (
     <div>

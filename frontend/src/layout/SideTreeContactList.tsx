@@ -2,6 +2,14 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import type { FriendView } from '../types/friendship';
 import { directMessageService } from '../services/directMessageService';
+import { usePresence } from '../hooks/usePresence';
+import type { PresenceState } from '../types/presence';
+
+function dotFor(state: PresenceState): { symbol: string; className: string; label: string } {
+  if (state === 'ONLINE') return { symbol: '●', className: 'text-green-500 mr-1', label: 'online' };
+  if (state === 'AFK') return { symbol: '◐', className: 'text-yellow-500 mr-1', label: 'AFK' };
+  return { symbol: '○', className: 'text-gray-400 mr-1', label: 'offline' };
+}
 
 interface Props {
   friends: FriendView[];
@@ -10,6 +18,9 @@ interface Props {
 export const SideTreeContactList: React.FC<Props> = ({ friends }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const friendIds = friends.map((f) => f.userId);
+  const getPresence = usePresence(friendIds);
 
   const openDm = async (userId: string) => {
     try {
@@ -42,9 +53,10 @@ export const SideTreeContactList: React.FC<Props> = ({ friends }) => {
                   className="flex items-center justify-between pl-4 pr-2 py-1 text-sm hover:bg-gray-100 rounded"
                 >
                   <span className="truncate">
-                    <span className="text-gray-400 mr-1" aria-label="offline">
-                      ○
-                    </span>
+                    {(() => {
+                      const { symbol, className, label } = dotFor(getPresence(f.userId));
+                      return <span className={className} aria-label={label}>{symbol}</span>;
+                    })()}
                     {f.username}
                   </span>
                   <span className="text-xs text-gray-400" aria-label="unread count">
