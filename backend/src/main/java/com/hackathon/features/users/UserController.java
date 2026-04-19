@@ -1,10 +1,12 @@
 package com.hackathon.features.users;
 
+import com.hackathon.features.users.UserService.WrongPasswordException;
 import com.hackathon.shared.security.JwtTokenProvider;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -56,6 +58,38 @@ public class UserController {
   public ResponseEntity<Void> logout(@RequestHeader("Authorization") String authHeader) {
     return ResponseEntity.ok().build();
   }
+
+  @PatchMapping("/me/password")
+  public ResponseEntity<Void> changePassword(
+      @RequestBody ChangePasswordRequest request, Authentication authentication) {
+    try {
+      userService.changePassword(
+          currentUserId(authentication), request.oldPassword(), request.newPassword());
+      return ResponseEntity.ok().build();
+    } catch (WrongPasswordException e) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+  }
+
+  @DeleteMapping("/me")
+  public ResponseEntity<Void> deleteAccount(Authentication authentication) {
+    try {
+      userService.deleteAccount(currentUserId(authentication));
+      return ResponseEntity.noContent().build();
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+    }
+  }
+
+  private UUID currentUserId(Authentication authentication) {
+    Object details = authentication.getDetails();
+    if (details instanceof UUID uuid) return uuid;
+    return userService.getUserByUsername(authentication.getName()).getId();
+  }
+
+  public record ChangePasswordRequest(String oldPassword, String newPassword) {}
 
   public static class RegisterRequest {
     private String email;
