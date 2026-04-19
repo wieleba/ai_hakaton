@@ -157,6 +157,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 7 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management) + polish (emoji picker + reactions, chat ordering)
+- **Completed:** 8 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments) + polish (emoji picker + reactions, chat ordering)
 - **In progress:** 0
-- **Remaining:** 3 (Attachments, Presence/Sessions, Password Reset)
+- **Remaining:** 3 (Presence/Sessions, Password Reset, YouTube Embeds)
