@@ -1,5 +1,7 @@
 package com.hackathon.features.presence;
 
+import com.hackathon.features.sessions.SessionView;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,32 +21,52 @@ public class InMemoryPresenceService implements PresenceService {
   static final class SessionEntry {
     volatile boolean idle;
     volatile long lastSeen;
+    final long connectedAt;
     final String instance;
+    final String userAgent;
+    final String remoteAddr;
+    final String tokenHash;
 
-    SessionEntry(boolean idle, long lastSeen, String instance) {
+    SessionEntry(
+        boolean idle,
+        long lastSeen,
+        long connectedAt,
+        String instance,
+        String userAgent,
+        String remoteAddr,
+        String tokenHash) {
       this.idle = idle;
       this.lastSeen = lastSeen;
+      this.connectedAt = connectedAt;
       this.instance = instance;
+      this.userAgent = userAgent;
+      this.remoteAddr = remoteAddr;
+      this.tokenHash = tokenHash;
     }
   }
 
   private final ConcurrentMap<UUID, ConcurrentMap<String, SessionEntry>> byUser =
       new ConcurrentHashMap<>();
 
-  // Test profile uses a fixed instance id so watchdog tests work deterministically.
   @Getter private final String instanceId = "test-instance";
 
   @Override
-  public void markOnline(UUID userId, String sessionId) {
+  public void markOnline(
+      UUID userId, String sessionId, String userAgent, String remoteAddr, String tokenHash) {
+    long now = System.currentTimeMillis();
     byUser
         .computeIfAbsent(userId, k -> new ConcurrentHashMap<>())
-        .compute(sessionId, (k, existing) -> {
-          if (existing == null)
-            return new SessionEntry(false, System.currentTimeMillis(), instanceId);
-          existing.idle = false;
-          existing.lastSeen = System.currentTimeMillis();
-          return existing;
-        });
+        .compute(
+            sessionId,
+            (k, existing) -> {
+              if (existing == null) {
+                return new SessionEntry(
+                    false, now, now, instanceId, userAgent, remoteAddr, tokenHash);
+              }
+              existing.idle = false;
+              existing.lastSeen = now;
+              return existing;
+            });
   }
 
   @Override
@@ -59,7 +81,14 @@ public class InMemoryPresenceService implements PresenceService {
 
   @Override
   public void markActive(UUID userId, String sessionId) {
-    markOnline(userId, sessionId);
+    ConcurrentMap<String, SessionEntry> sessions = byUser.get(userId);
+    if (sessions == null || sessions.get(sessionId) == null) {
+      markOnline(userId, sessionId, null, null, null);
+      return;
+    }
+    SessionEntry e = sessions.get(sessionId);
+    e.idle = false;
+    e.lastSeen = System.currentTimeMillis();
   }
 
   @Override
@@ -111,6 +140,26 @@ public class InMemoryPresenceService implements PresenceService {
       if (changed) affected.add(userId);
     }
     return affected;
+  }
+
+  @Override
+  public List<SessionView> listSessions(UUID userId) {
+    ConcurrentMap<String, SessionEntry> sessions = byUser.get(userId);
+    if (sessions == null) return List.of();
+    List<SessionView> out = new ArrayList<>(sessions.size());
+    for (Map.Entry<String, SessionEntry> entry : sessions.entrySet()) {
+      SessionEntry e = entry.getValue();
+      out.add(
+          new SessionView(
+              entry.getKey(),
+              e.userAgent,
+              e.remoteAddr,
+              Instant.ofEpochMilli(e.connectedAt),
+              Instant.ofEpochMilli(e.lastSeen),
+              e.idle,
+              e.tokenHash));
+    }
+    return out;
   }
 
   private static PresenceState aggregateOf(Collection<SessionEntry> sessions) {

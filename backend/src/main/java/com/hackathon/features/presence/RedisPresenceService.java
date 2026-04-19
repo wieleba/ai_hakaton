@@ -1,7 +1,9 @@
 package com.hackathon.features.presence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hackathon.features.sessions.SessionView;
 import jakarta.annotation.PostConstruct;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,8 +28,7 @@ public class RedisPresenceService implements PresenceService {
   private final StringRedisTemplate redis;
   private final ObjectMapper objectMapper;
 
-  @Getter
-  private String instanceId;
+  @Getter private String instanceId;
 
   @PostConstruct
   void init() {
@@ -39,7 +40,14 @@ public class RedisPresenceService implements PresenceService {
     return KEY_PREFIX + userId;
   }
 
-  private record SessionEntry(boolean idle, long lastSeen, String instance) {}
+  private record SessionEntry(
+      boolean idle,
+      long lastSeen,
+      long connectedAt,
+      String instance,
+      String userAgent,
+      String remoteAddr,
+      String tokenHash) {}
 
   private String toJson(SessionEntry e) {
     try {
@@ -57,14 +65,13 @@ public class RedisPresenceService implements PresenceService {
     }
   }
 
-  private void upsertSession(UUID userId, String sessionId, boolean idle) {
-    SessionEntry entry = new SessionEntry(idle, System.currentTimeMillis(), instanceId);
-    redis.opsForHash().put(key(userId), sessionId, toJson(entry));
-  }
-
   @Override
-  public void markOnline(UUID userId, String sessionId) {
-    upsertSession(userId, sessionId, false);
+  public void markOnline(
+      UUID userId, String sessionId, String userAgent, String remoteAddr, String tokenHash) {
+    long now = System.currentTimeMillis();
+    SessionEntry entry =
+        new SessionEntry(false, now, now, instanceId, userAgent, remoteAddr, tokenHash);
+    redis.opsForHash().put(key(userId), sessionId, toJson(entry));
   }
 
   @Override
@@ -72,7 +79,15 @@ public class RedisPresenceService implements PresenceService {
     Object raw = redis.opsForHash().get(key(userId), sessionId);
     if (raw == null) return;
     SessionEntry existing = fromJson(raw.toString());
-    SessionEntry updated = new SessionEntry(true, System.currentTimeMillis(), existing.instance());
+    SessionEntry updated =
+        new SessionEntry(
+            true,
+            System.currentTimeMillis(),
+            existing.connectedAt(),
+            existing.instance(),
+            existing.userAgent(),
+            existing.remoteAddr(),
+            existing.tokenHash());
     redis.opsForHash().put(key(userId), sessionId, toJson(updated));
   }
 
@@ -80,11 +95,19 @@ public class RedisPresenceService implements PresenceService {
   public void markActive(UUID userId, String sessionId) {
     Object raw = redis.opsForHash().get(key(userId), sessionId);
     if (raw == null) {
-      markOnline(userId, sessionId);
+      markOnline(userId, sessionId, null, null, null);
       return;
     }
     SessionEntry existing = fromJson(raw.toString());
-    SessionEntry updated = new SessionEntry(false, System.currentTimeMillis(), existing.instance());
+    SessionEntry updated =
+        new SessionEntry(
+            false,
+            System.currentTimeMillis(),
+            existing.connectedAt(),
+            existing.instance(),
+            existing.userAgent(),
+            existing.remoteAddr(),
+            existing.tokenHash());
     redis.opsForHash().put(key(userId), sessionId, toJson(updated));
   }
 
@@ -94,7 +117,14 @@ public class RedisPresenceService implements PresenceService {
     if (raw == null) return;
     SessionEntry existing = fromJson(raw.toString());
     SessionEntry updated =
-        new SessionEntry(existing.idle(), System.currentTimeMillis(), existing.instance());
+        new SessionEntry(
+            existing.idle(),
+            System.currentTimeMillis(),
+            existing.connectedAt(),
+            existing.instance(),
+            existing.userAgent(),
+            existing.remoteAddr(),
+            existing.tokenHash());
     redis.opsForHash().put(key(userId), sessionId, toJson(updated));
   }
 
@@ -155,5 +185,24 @@ public class RedisPresenceService implements PresenceService {
       }
     }
     return affected;
+  }
+
+  @Override
+  public List<SessionView> listSessions(UUID userId) {
+    Map<Object, Object> all = redis.opsForHash().entries(key(userId));
+    List<SessionView> out = new ArrayList<>(all.size());
+    for (Map.Entry<Object, Object> entry : all.entrySet()) {
+      SessionEntry e = fromJson(entry.getValue().toString());
+      out.add(
+          new SessionView(
+              entry.getKey().toString(),
+              e.userAgent(),
+              e.remoteAddr(),
+              Instant.ofEpochMilli(e.connectedAt()),
+              Instant.ofEpochMilli(e.lastSeen()),
+              e.idle(),
+              e.tokenHash()));
+    }
+    return out;
   }
 }

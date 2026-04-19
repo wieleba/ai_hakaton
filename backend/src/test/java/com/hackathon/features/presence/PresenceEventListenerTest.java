@@ -45,7 +45,7 @@ class PresenceEventListenerTest {
 
         listener.onConnect(event);
 
-        verify(service).markOnline(userId, "s1");
+        verify(service).markOnline(userId, "s1", null, null, null);
         verify(publisher).publish(userId, PresenceState.ONLINE);
     }
 

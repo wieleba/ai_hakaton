@@ -38,8 +38,8 @@ class PresenceControllerTest {
     User carol = register("c");
     String token = jwtTokenProvider.generateToken(alice.getId(), alice.getUsername());
 
-    presenceService.markOnline(alice.getId(), "s1");
-    presenceService.markOnline(bob.getId(), "s1");
+    presenceService.markOnline(alice.getId(), "s1", null, null, null);
+    presenceService.markOnline(bob.getId(), "s1", null, null, null);
     presenceService.markAfk(bob.getId(), "s1");
 
     mvc.perform(

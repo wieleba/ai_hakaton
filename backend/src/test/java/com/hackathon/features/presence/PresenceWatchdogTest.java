@@ -16,7 +16,7 @@ class PresenceWatchdogTest {
     @Test
     void evictStale_removesOwnedSession() throws InterruptedException {
         UUID u = UUID.randomUUID();
-        service.markOnline(u, "s1");
+        service.markOnline(u, "s1", null, null, null);
         Thread.sleep(5);
         long cutoff = System.currentTimeMillis();
         service.evictStaleOwnedBy(service.getInstanceId(), cutoff);
@@ -26,7 +26,7 @@ class PresenceWatchdogTest {
     @Test
     void evictStale_leavesForeignSessionsAlone() throws InterruptedException {
         UUID u = UUID.randomUUID();
-        service.markOnline(u, "s1");
+        service.markOnline(u, "s1", null, null, null);
         Thread.sleep(5);
         long cutoff = System.currentTimeMillis();
         service.evictStaleOwnedBy("some-other-instance", cutoff);

@@ -1,17 +1,27 @@
 package com.hackathon.features.presence;
 
+import com.hackathon.features.sessions.SessionView;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public interface PresenceService {
-  /** Record a new ACTIVE session for this user. Idempotent per (userId, sessionId). */
-  void markOnline(UUID userId, String sessionId);
+  /**
+   * Record a new ACTIVE session for this user. Idempotent per (userId, sessionId).
+   * userAgent/remoteAddr may be null when the handshake didn't carry them. tokenHash
+   * is the SHA-256 hex of the raw JWT that owns this session.
+   */
+  void markOnline(
+      UUID userId,
+      String sessionId,
+      String userAgent,
+      String remoteAddr,
+      String tokenHash);
 
   /** Flip an existing session to IDLE. No-op if session unknown. */
   void markAfk(UUID userId, String sessionId);
 
-  /** Flip an existing session to ACTIVE. No-op if session unknown (creates it as ACTIVE). */
+  /** Flip an existing session to ACTIVE. No-op if session unknown (creates it as ACTIVE with null metadata). */
   void markActive(UUID userId, String sessionId);
 
   /** Update lastSeen for an existing session (from client heartbeats). No-op if unknown. */
@@ -31,4 +41,7 @@ public interface PresenceService {
    * Returns the list of user ids whose session set changed.
    */
   List<UUID> evictStaleOwnedBy(String instanceId, long cutoffEpochMillis);
+
+  /** Return all active sessions for the user (empty list when none). */
+  List<SessionView> listSessions(UUID userId);
 }

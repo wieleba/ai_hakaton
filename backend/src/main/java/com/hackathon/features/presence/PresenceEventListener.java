@@ -30,7 +30,7 @@ public class PresenceEventListener {
             log.warn("SessionConnectedEvent with non-UUID principal: {}", user.getName());
             return;
         }
-        presenceService.markOnline(userId, sessionId);
+        presenceService.markOnline(userId, sessionId, null, null, null);
         presencePublisher.publish(userId, presenceService.aggregate(userId));
     }
 
