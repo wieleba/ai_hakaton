@@ -1,5 +1,6 @@
 package com.hackathon.shared.security;
 
+import com.hackathon.features.users.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtTokenProvider jwtTokenProvider;
+  private final UserRepository userRepository;
 
   @Override
   protected void doFilterInternal(
@@ -27,11 +29,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       String token = header.substring(7);
       if (jwtTokenProvider.validateToken(token)) {
         UUID userId = jwtTokenProvider.getUserIdFromToken(token);
-        String username = jwtTokenProvider.getUsernameFromToken(token);
-        UsernamePasswordAuthenticationToken auth =
-            new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
-        auth.setDetails(userId);
-        SecurityContextHolder.getContext().setAuthentication(auth);
+        // Guard: the user row may be gone (account deletion). Leave the context
+        // unauthenticated so the SecurityConfig entry point returns 401 on protected
+        // routes; public routes (/register, /login) continue to work.
+        if (userRepository.existsById(userId)) {
+          String username = jwtTokenProvider.getUsernameFromToken(token);
+          UsernamePasswordAuthenticationToken auth =
+              new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
+          auth.setDetails(userId);
+          SecurityContextHolder.getContext().setAuthentication(auth);
+        }
       }
     }
     chain.doFilter(request, response);
