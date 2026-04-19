@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
 import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipService;
 import com.hackathon.features.users.User;
@@ -156,5 +159,26 @@ class DirectMessageControllerTest {
                 .contentType("application/json")
                 .content("{\"text\":\"hijacked\"}"))
         .andExpect(status().is4xxClientError());
+  }
+
+  @Test
+  void sendMessage_multipart_withImage_returnsDtoWithAttachment_dm() throws Exception {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    String token = jwtTokenProvider.generateToken(a.getId(), a.getUsername());
+
+    var filePart = new MockMultipartFile(
+        "file", "pic.png", "image/png", new byte[]{1, 2, 3});
+
+    mvc.perform(
+            MockMvcRequestBuilders
+                .multipart("/api/dms/{cid}/messages", conv.getId())
+                .file(filePart)
+                .param("text", "hi")
+                .header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachment.filename").value("pic.png"));
   }
 }

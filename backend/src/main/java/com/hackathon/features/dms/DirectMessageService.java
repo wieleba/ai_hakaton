@@ -1,13 +1,17 @@
 package com.hackathon.features.dms;
 
+import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.bans.UserBanRepository;
 import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipRepository;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
+import com.hackathon.shared.dto.AttachmentSummary;
 import com.hackathon.shared.dto.DirectMessageDTO;
 import com.hackathon.shared.dto.DirectMessageEventEnvelope;
 import com.hackathon.shared.dto.MessagePreview;
+import com.hackathon.shared.storage.StorageService;
+import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -35,6 +39,8 @@ public class DirectMessageService {
   private final UserService userService;
   private final SimpMessagingTemplate messagingTemplate;
   private final DirectMessageReactionRepository directMessageReactionRepository;
+  private final DirectMessageAttachmentRepository attachmentRepository;
+  private final StorageService storageService;
 
   @Transactional
   public DirectMessage send(UUID senderId, UUID conversationId, String text, UUID replyToId) {
@@ -66,6 +72,70 @@ public class DirectMessageService {
 
   public DirectMessage send(UUID senderId, UUID conversationId, String text) {
     return send(senderId, conversationId, text, null);
+  }
+
+  @Transactional
+  public DirectMessage send(
+      UUID senderId,
+      UUID conversationId,
+      String text,
+      UUID replyToId,
+      String filename,
+      String mimeType,
+      long size,
+      InputStream content) {
+    DirectConversation conv = loadConversation(conversationId);
+    if (!conv.getUser1Id().equals(senderId) && !conv.getUser2Id().equals(senderId)) {
+      throw new IllegalArgumentException("Not a participant of this conversation");
+    }
+    UUID other = conversationService.otherParticipant(conv, senderId);
+    ensureFriendsAndNotBanned(senderId, other);
+
+    boolean hasText = text != null && !text.trim().isEmpty();
+    boolean hasFile = content != null;
+    if (!hasText && !hasFile) {
+      throw new IllegalArgumentException("Message must contain text or a file");
+    }
+    if (hasText && text.length() > MAX_TEXT) {
+      throw new IllegalArgumentException("Message exceeds 3072 characters");
+    }
+    if (hasFile) {
+      if (!AttachmentPolicy.isAllowed(mimeType)) {
+        throw new IllegalArgumentException("File type not allowed: " + mimeType);
+      }
+      if (size <= 0 || size > AttachmentPolicy.MAX_SIZE_BYTES) {
+        throw new IllegalArgumentException("File size outside allowed range");
+      }
+    }
+    if (replyToId != null) {
+      DirectMessage parent = directMessageRepository
+          .findById(replyToId)
+          .orElseThrow(() -> new IllegalArgumentException("Reply target not found"));
+      if (!parent.getConversationId().equals(conversationId)) {
+        throw new IllegalArgumentException("Reply target is in a different conversation");
+      }
+    }
+    DirectMessage saved = directMessageRepository.save(
+        DirectMessage.builder()
+            .conversationId(conversationId)
+            .senderId(senderId)
+            .text(hasText ? text : "")
+            .replyToId(replyToId)
+            .build());
+
+    if (hasFile) {
+      String storageKey = storageService.store(content, size, mimeType);
+      attachmentRepository.save(
+          DirectMessageAttachment.builder()
+              .directMessageId(saved.getId())
+              .filename(filename)
+              .mimeType(mimeType)
+              .sizeBytes(size)
+              .storageKey(storageKey)
+              .build());
+    }
+    publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
+    return saved;
   }
 
   @Transactional
@@ -105,6 +175,10 @@ public class DirectMessageService {
     if (m.getDeletedAt() != null) {
       return;
     }
+    attachmentRepository.findByDirectMessageId(messageId).ifPresent(att -> {
+      storageService.delete(att.getStorageKey());
+      attachmentRepository.delete(att);
+    });
     m.setDeletedAt(OffsetDateTime.now());
     m.setDeletedBy(callerId);
     DirectMessage saved = directMessageRepository.save(m);
@@ -153,6 +227,12 @@ public class DirectMessageService {
         preview = new MessagePreview(p.getId(), resolveUsername(p.getSenderId()), snippet);
       }
     }
+    AttachmentSummary attachmentSummary = null;
+    if (m.getDeletedAt() == null) {
+      attachmentSummary = attachmentRepository.findByDirectMessageId(m.getId())
+          .map(a -> new AttachmentSummary(a.getId(), a.getFilename(), a.getMimeType(), a.getSizeBytes()))
+          .orElse(null);
+    }
     return DirectMessageDTO.builder()
         .id(m.getId())
         .conversationId(m.getConversationId())
@@ -165,6 +245,7 @@ public class DirectMessageService {
         .deletedBy(m.getDeletedBy())
         .replyTo(preview)
         .reactions(buildReactions(m.getId(), callerId))
+        .attachment(attachmentSummary)
         .build();
   }
 

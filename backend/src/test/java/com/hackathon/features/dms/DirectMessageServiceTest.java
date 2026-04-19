@@ -6,6 +6,8 @@ import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipService;
 import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
+import com.hackathon.shared.dto.DirectMessageDTO;
+import java.io.ByteArrayInputStream;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,7 @@ class DirectMessageServiceTest {
   @Autowired DirectMessageService directMessageService;
   @Autowired DirectMessageRepository directMessageRepository;
   @Autowired DirectMessageReactionRepository directMessageReactionRepository;
+  @Autowired DirectMessageAttachmentRepository attachmentRepository;
 
   private User registerUser(String suffix) {
     long t = System.nanoTime();
@@ -222,5 +225,51 @@ class DirectMessageServiceTest {
     DirectMessage inAB = directMessageService.send(a.getId(), ab.getId(), "in-ab");
     assertThrows(IllegalArgumentException.class,
         () -> directMessageService.send(a.getId(), ac.getId(), "cross", inAB.getId()));
+  }
+
+  @Test
+  void send_withAttachment_storesFile_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    byte[] bytes = new byte[]{1, 2, 3};
+    DirectMessage m = directMessageService.send(
+        a.getId(), conv.getId(), "hi",
+        null, "pic.png", "image/png", bytes.length,
+        new ByteArrayInputStream(bytes));
+    DirectMessageDTO dto = directMessageService.toDto(m);
+    assertNotNull(dto.getAttachment());
+    assertEquals("pic.png", dto.getAttachment().filename());
+  }
+
+  @Test
+  void send_withBadMime_rejected_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    byte[] bytes = "<svg/>".getBytes();
+    assertThrows(IllegalArgumentException.class,
+        () -> directMessageService.send(
+            a.getId(), conv.getId(), null, null,
+            "x.svg", "image/svg+xml", bytes.length,
+            new ByteArrayInputStream(bytes)));
+  }
+
+  @Test
+  void delete_withAttachment_removesRow_dm() {
+    User a = registerUser("a");
+    User b = registerUser("b");
+    makeFriends(a, b);
+    DirectConversation conv = conversationService.getOrCreate(a.getId(), b.getId());
+    byte[] bytes = "hi".getBytes();
+    DirectMessage m = directMessageService.send(
+        a.getId(), conv.getId(), null, null,
+        "hi.txt", "text/plain", bytes.length,
+        new ByteArrayInputStream(bytes));
+    assertTrue(attachmentRepository.findByDirectMessageId(m.getId()).isPresent());
+    directMessageService.deleteMessage(m.getId(), a.getId());
+    assertTrue(attachmentRepository.findByDirectMessageId(m.getId()).isEmpty());
   }
 }

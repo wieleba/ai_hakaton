@@ -7,9 +7,11 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/dms")
@@ -85,6 +87,27 @@ public class DirectMessageController {
         directMessageService.send(
             currentUserId(authentication), conversationId, body.text(), body.replyToId());
     return ResponseEntity.ok(directMessageService.toDto(sent));
+  }
+
+  @PostMapping(path = "/{conversationId}/messages", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<DirectMessageDTO> sendMessageMultipart(
+      @PathVariable UUID conversationId,
+      @RequestParam(value = "text", required = false) String text,
+      @RequestParam(value = "replyToId", required = false) UUID replyToId,
+      @RequestParam(value = "file", required = false) MultipartFile file,
+      Authentication authentication) throws java.io.IOException {
+    String filename = file != null ? file.getOriginalFilename() : null;
+    String mimeType = file != null ? file.getContentType() : null;
+    long size = file != null ? file.getSize() : 0L;
+    java.io.InputStream content = file != null ? file.getInputStream() : null;
+    try {
+      DirectMessage sent = directMessageService.send(
+          currentUserId(authentication), conversationId,
+          text, replyToId, filename, mimeType, size, content);
+      return ResponseEntity.ok(directMessageService.toDto(sent));
+    } catch (IllegalArgumentException e) {
+      return ResponseEntity.badRequest().build();
+    }
   }
 
   @PatchMapping("/{conversationId}/messages/{messageId}")
