@@ -165,7 +165,7 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
   - Task 1 (per-session PresenceEntry metadata) — DONE
   - Task 2 (capture UA/IP/tokenHash on WS handshake) — DONE
   - Task 3 (TokenRevocationService + REST filter + WS CONNECT enforcement) — DONE
-  - Task 4 (Sessions REST API + log-out-session) — PENDING
+  - Task 4 (Sessions REST API + log-out-session) — DONE
   - Task 5 (Frontend /sessions page + plumbing) — PENDING
 
 ### Feature #11: Server-side embed metadata (split out of #10)
