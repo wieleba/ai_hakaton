@@ -140,4 +140,22 @@ class InMemoryPresenceServiceTest {
     assertThat(row.tokenHash()).isEqualTo("hashA");
     assertThat(row.idle()).isTrue();
   }
+
+  @Test
+  void markOnlineCalledTwicePreservesConnectedAtAndMetadata() throws InterruptedException {
+    UUID user = UUID.randomUUID();
+    service.markOnline(user, "s1", "Chrome/120", "10.0.0.4", "hashA");
+    var first = service.listSessions(user).get(0);
+    Thread.sleep(5);
+    // Simulate a re-invocation with nulls (matches what a bad reconnect flow could do).
+    service.markOnline(user, "s1", null, null, null);
+
+    var second = service.listSessions(user).get(0);
+    assertThat(second.userAgent()).isEqualTo("Chrome/120");
+    assertThat(second.remoteAddr()).isEqualTo("10.0.0.4");
+    assertThat(second.tokenHash()).isEqualTo("hashA");
+    assertThat(second.connectedAt()).isEqualTo(first.connectedAt());
+    assertThat(second.lastSeen()).isNotEqualTo(first.lastSeen());
+    assertThat(second.idle()).isFalse();
+  }
 }

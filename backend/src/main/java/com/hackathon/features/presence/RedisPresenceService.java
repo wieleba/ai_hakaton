@@ -69,6 +69,21 @@ public class RedisPresenceService implements PresenceService {
   public void markOnline(
       UUID userId, String sessionId, String userAgent, String remoteAddr, String tokenHash) {
     long now = System.currentTimeMillis();
+    Object raw = redis.opsForHash().get(key(userId), sessionId);
+    if (raw != null) {
+      SessionEntry existing = fromJson(raw.toString());
+      SessionEntry updated =
+          new SessionEntry(
+              false,
+              now,
+              existing.connectedAt(),
+              existing.instance(),
+              existing.userAgent(),
+              existing.remoteAddr(),
+              existing.tokenHash());
+      redis.opsForHash().put(key(userId), sessionId, toJson(updated));
+      return;
+    }
     SessionEntry entry =
         new SessionEntry(false, now, now, instanceId, userAgent, remoteAddr, tokenHash);
     redis.opsForHash().put(key(userId), sessionId, toJson(entry));
