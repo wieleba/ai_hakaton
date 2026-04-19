@@ -81,7 +81,12 @@ public class SessionController {
       return ResponseEntity.badRequest().build();
     }
     UUID me = currentUserId(authentication);
-    int count = sessionService.logoutOthers(me, currentSessionId);
+    int count;
+    try {
+      count = sessionService.logoutOthers(me, currentSessionId);
+    } catch (NoSuchElementException e) {
+      return ResponseEntity.notFound().build();
+    }
     return ResponseEntity.ok(new LogoutOthersResponse(count));
   }
 }

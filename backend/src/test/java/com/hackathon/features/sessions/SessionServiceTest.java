@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 import com.hackathon.features.presence.InMemoryPresenceService;
 import com.hackathon.features.presence.PresenceService;
@@ -88,5 +89,19 @@ class SessionServiceTest {
     verify(sessionDisconnector).disconnect("s3");
     verify(sessionDisconnector, never()).disconnect("s2");
     assertThat(sessionService.list(me)).extracting(SessionView::sessionId).containsExactly("s2");
+  }
+
+  @Test
+  void logoutOthersWithStaleCurrentIdThrowsAndNukesNothing() {
+    UUID me = UUID.randomUUID();
+    presenceService.markOnline(me, "s1", "UA1", "1.1.1.1", "h1");
+    presenceService.markOnline(me, "s2", "UA2", "2.2.2.2", "h2");
+
+    assertThatThrownBy(() -> sessionService.logoutOthers(me, "ghost"))
+        .isInstanceOf(NoSuchElementException.class);
+
+    verifyNoInteractions(sessionDisconnector);
+    assertThat(sessionService.list(me)).extracting(SessionView::sessionId)
+        .containsExactlyInAnyOrder("s1", "s2");
   }
 }
