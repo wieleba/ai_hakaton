@@ -1,0 +1,3 @@
+# Playwright output when the suite runs from the repo root
+test-results/
+playwright-report/

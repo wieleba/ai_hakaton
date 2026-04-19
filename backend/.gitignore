@@ -13,6 +13,8 @@ gradlew.bat
 .classpath
 .project
 .settings/
+.factorypath
+bin/
 *.swp
 *.swo
 *~
