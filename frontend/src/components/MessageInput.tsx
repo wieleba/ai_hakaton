@@ -9,19 +9,21 @@ interface MessageInputProps {
   onSend: (text: string) => void;
   disabled: boolean;
   actions?: React.ReactNode;
+  /** When true, allow send with empty text (e.g. a file is staged). */
+  canSubmitWithoutText?: boolean;
 }
 
 const MAX_LENGTH = 3072;
 
 export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
-  ({ onSend, disabled, actions }, ref) => {
+  ({ onSend, disabled, actions, canSubmitWithoutText }, ref) => {
     const [text, setText] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const send = () => {
       if (disabled) return;
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed && !canSubmitWithoutText) return;
       onSend(text);
       setText('');
     };
@@ -76,7 +78,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
           />
           <button
             type="submit"
-            disabled={disabled || !text.trim()}
+            disabled={disabled || (!text.trim() && !canSubmitWithoutText)}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 self-end"
           >
             Send

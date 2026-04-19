@@ -133,6 +133,7 @@ export const DirectChatPage: React.FC = () => {
         ref={inputRef}
         onSend={handleSend}
         disabled={!conversationId}
+        canSubmitWithoutText={!!stagedFile}
         actions={
           <>
             <ComposerAttachButton onFile={(f) => setStagedFile(f)} disabled={!!stagedFile} />
