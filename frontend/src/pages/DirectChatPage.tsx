@@ -134,6 +134,7 @@ export const DirectChatPage: React.FC = () => {
         onSend={handleSend}
         disabled={!conversationId}
         canSubmitWithoutText={!!stagedFile}
+        onPasteFile={(f) => setStagedFile(f)}
         actions={
           <>
             <ComposerAttachButton onFile={(f) => setStagedFile(f)} disabled={!!stagedFile} />

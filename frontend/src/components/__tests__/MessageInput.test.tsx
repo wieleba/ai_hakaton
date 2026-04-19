@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MessageInput } from '../MessageInput';
 
@@ -86,5 +86,28 @@ describe('MessageInput', () => {
     await user.keyboard('{Control>}{Enter}{/Control}');
 
     expect(textarea).toHaveValue('');
+  });
+
+  it('calls onPasteFile when a file is pasted into the textarea', () => {
+    const onSend = vi.fn();
+    const onPasteFile = vi.fn();
+    render(<MessageInput onSend={onSend} disabled={false} onPasteFile={onPasteFile} />);
+
+    const textarea = screen.getByPlaceholderText(/type a message/i);
+    const file = new File(['x'], 'pasted.png', { type: 'image/png' });
+    fireEvent.paste(textarea, { clipboardData: { files: [file], items: [] } });
+
+    expect(onPasteFile).toHaveBeenCalledWith(file);
+  });
+
+  it('ignores paste when clipboard has no files', () => {
+    const onSend = vi.fn();
+    const onPasteFile = vi.fn();
+    render(<MessageInput onSend={onSend} disabled={false} onPasteFile={onPasteFile} />);
+
+    const textarea = screen.getByPlaceholderText(/type a message/i);
+    fireEvent.paste(textarea, { clipboardData: { files: [], items: [] } });
+
+    expect(onPasteFile).not.toHaveBeenCalled();
   });
 });

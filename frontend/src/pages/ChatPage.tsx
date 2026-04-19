@@ -143,6 +143,7 @@ export const ChatPage: React.FC = () => {
             onSend={handleSend}
             disabled={!isConnected && !stagedFile}
             canSubmitWithoutText={!!stagedFile}
+            onPasteFile={(f) => setStagedFile(f)}
             actions={
               <>
                 <ComposerAttachButton onFile={(f) => setStagedFile(f)} disabled={!!stagedFile} />

@@ -11,12 +11,14 @@ interface MessageInputProps {
   actions?: React.ReactNode;
   /** When true, allow send with empty text (e.g. a file is staged). */
   canSubmitWithoutText?: boolean;
+  /** Called when the user pastes a file into the textarea. */
+  onPasteFile?: (file: File) => void;
 }
 
 const MAX_LENGTH = 3072;
 
 export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
-  ({ onSend, disabled, actions, canSubmitWithoutText }, ref) => {
+  ({ onSend, disabled, actions, canSubmitWithoutText, onPasteFile }, ref) => {
     const [text, setText] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,6 +40,14 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
         e.preventDefault();
         send();
       }
+    };
+
+    const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+      if (!onPasteFile) return;
+      const files = e.clipboardData?.files;
+      if (!files || files.length === 0) return;
+      e.preventDefault();
+      onPasteFile(files[0]);
     };
 
     useImperativeHandle(ref, () => ({
@@ -71,6 +81,7 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, MAX_LENGTH))}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             placeholder="Type a message... (Ctrl+Enter to send)"
             disabled={disabled}
             rows={3}
