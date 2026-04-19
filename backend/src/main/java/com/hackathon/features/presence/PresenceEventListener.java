@@ -1,9 +1,7 @@
 package com.hackathon.features.presence;
 
-import com.hackathon.shared.websocket.SessionAttrHandshakeInterceptor;
-import com.hackathon.shared.websocket.WebSocketConfig;
+import com.hackathon.shared.websocket.WsSessionMetadataRegistry;
 import java.security.Principal;
-import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +17,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 public class PresenceEventListener {
     private final PresenceService presenceService;
     private final PresencePublisher presencePublisher;
+    private final WsSessionMetadataRegistry metadataRegistry;
 
     @EventListener
     public void onConnect(SessionConnectedEvent event) {
@@ -33,16 +32,12 @@ public class PresenceEventListener {
             log.warn("SessionConnectedEvent with non-UUID principal: {}", user.getName());
             return;
         }
-        Map<String, Object> attrs = accessor.getSessionAttributes();
-        String userAgent = null, remoteAddr = null, tokenHash = null;
-        if (attrs != null) {
-            Object ua = attrs.get(SessionAttrHandshakeInterceptor.ATTR_USER_AGENT);
-            Object ip = attrs.get(SessionAttrHandshakeInterceptor.ATTR_REMOTE_ADDR);
-            Object th = attrs.get(WebSocketConfig.ATTR_TOKEN_HASH);
-            userAgent = ua == null ? null : ua.toString();
-            remoteAddr = ip == null ? null : ip.toString();
-            tokenHash = th == null ? null : th.toString();
-        }
+        // SessionConnectedEvent does NOT carry session attributes, so we read UA / IP /
+        // tokenHash from the side registry the CONNECT interceptor populated.
+        WsSessionMetadataRegistry.Metadata meta = metadataRegistry.get(sessionId);
+        String userAgent = meta == null ? null : meta.userAgent();
+        String remoteAddr = meta == null ? null : meta.remoteAddr();
+        String tokenHash = meta == null ? null : meta.tokenHash();
         presenceService.markOnline(userId, sessionId, userAgent, remoteAddr, tokenHash);
         presencePublisher.publish(userId, presenceService.aggregate(userId));
     }
@@ -60,6 +55,7 @@ public class PresenceEventListener {
             return;
         }
         presenceService.markOffline(userId, sessionId);
+        metadataRegistry.remove(sessionId);
         presencePublisher.publish(userId, presenceService.aggregate(userId));
     }
 }

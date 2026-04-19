@@ -14,17 +14,20 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
+import com.hackathon.shared.websocket.WsSessionMetadataRegistry;
 
 class PresenceEventListenerTest {
     PresenceService service;
     PresencePublisher publisher;
+    WsSessionMetadataRegistry registry;
     PresenceEventListener listener;
 
     @BeforeEach
     void setup() {
         service = mock(PresenceService.class);
         publisher = mock(PresencePublisher.class);
-        listener = new PresenceEventListener(service, publisher);
+        registry = new WsSessionMetadataRegistry();
+        listener = new PresenceEventListener(service, publisher, registry);
     }
 
     private Message<byte[]> stompMessage(String sessionId, Principal principal) {
@@ -62,6 +65,34 @@ class PresenceEventListenerTest {
 
         verify(service).markOffline(userId, "s1");
         verify(publisher).publish(userId, PresenceState.OFFLINE);
+    }
+
+    @Test
+    void onConnect_readsMetadataFromRegistry() {
+        UUID userId = UUID.randomUUID();
+        Principal p = () -> userId.toString();
+        registry.put("s9", new WsSessionMetadataRegistry.Metadata("Chrome/120", "10.0.0.4", "hashZ"));
+        SessionConnectedEvent event = new SessionConnectedEvent(this, stompMessage("s9", p));
+
+        when(service.aggregate(userId)).thenReturn(PresenceState.ONLINE);
+
+        listener.onConnect(event);
+
+        verify(service).markOnline(userId, "s9", "Chrome/120", "10.0.0.4", "hashZ");
+    }
+
+    @Test
+    void onDisconnect_removesFromRegistry() {
+        UUID userId = UUID.randomUUID();
+        Principal p = () -> userId.toString();
+        registry.put("s10", new WsSessionMetadataRegistry.Metadata("UA", "IP", "H"));
+        SessionDisconnectEvent event = new SessionDisconnectEvent(
+                this, stompMessage("s10", p), "s10", CloseStatus.NORMAL);
+        when(service.aggregate(userId)).thenReturn(PresenceState.OFFLINE);
+
+        listener.onDisconnect(event);
+
+        org.assertj.core.api.Assertions.assertThat(registry.get("s10")).isNull();
     }
 
     @Test

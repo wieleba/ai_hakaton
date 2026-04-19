@@ -25,10 +25,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-  public static final String ATTR_TOKEN_HASH = "tokenHash";
   private final JwtTokenProvider jwtTokenProvider;
   private final SessionAttrHandshakeInterceptor handshakeInterceptor;
   private final TokenRevocationService tokenRevocationService;
+  private final WsSessionMetadataRegistry metadataRegistry;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -68,8 +68,21 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                     new UsernamePasswordAuthenticationToken(
                         userId.toString(), null, Collections.emptyList());
                 accessor.setUser(principal);
+
+                // Spring doesn't propagate session attributes onto SessionConnectedEvent,
+                // so stash UA / IP (from handshake attrs) plus tokenHash in a side
+                // registry keyed by STOMP session id for PresenceEventListener to read.
+                String sessionId = accessor.getSessionId();
                 var attrs = accessor.getSessionAttributes();
-                if (attrs != null) attrs.put(ATTR_TOKEN_HASH, hash);
+                String ua = null, ip = null;
+                if (attrs != null) {
+                  Object uaObj = attrs.get(SessionAttrHandshakeInterceptor.ATTR_USER_AGENT);
+                  Object ipObj = attrs.get(SessionAttrHandshakeInterceptor.ATTR_REMOTE_ADDR);
+                  ua = uaObj == null ? null : uaObj.toString();
+                  ip = ipObj == null ? null : ipObj.toString();
+                }
+                metadataRegistry.put(
+                    sessionId, new WsSessionMetadataRegistry.Metadata(ua, ip, hash));
               }
             }
             return message;
