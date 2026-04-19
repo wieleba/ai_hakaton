@@ -148,6 +148,14 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Does not replace the existing message text — link stays clickable and the embed renders below it
 - **Status: TODO**
 
+### Feature #11: Server-side embed metadata (split out of #10)
+- Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
+- Persist `message_embeds` table per message with `kind`, `source_url`, `canonical_id`, cached `title`, `thumbnail_url`
+- Expose on DTOs so clients get pre-parsed metadata instead of each re-running regex
+- Enables: server-side moderation (ban a video across rooms), richer previews (thumbnails + titles), search-by-embed-type
+- Split out of Feature #10 because the frontend-only approach gets us the primary UX win (inline video player) with zero schema change; server-side metadata is an enhancement, not a blocker
+- **Status: TODO**
+
 ## Key Architecture Notes
 - **Backend:** Spring Boot 3.5.12, Java 25, Gradle 9.4.1, PostgreSQL 15, Flyway
 - **Frontend:** React 19, TypeScript, Vite, axios, @stomp/stompjs + sockjs-client
