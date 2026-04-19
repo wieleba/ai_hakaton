@@ -52,6 +52,14 @@ export const ProfileMenu: React.FC<Props> = ({ username }) => {
             Change password
           </button>
           <button
+            onClick={signOut}
+            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+            role="menuitem"
+          >
+            Sign out
+          </button>
+          <div className="border-t my-1" />
+          <button
             onClick={() => {
               setOpen(false);
               setDeleteOpen(true);
@@ -60,14 +68,6 @@ export const ProfileMenu: React.FC<Props> = ({ username }) => {
             role="menuitem"
           >
             Delete account
-          </button>
-          <div className="border-t" />
-          <button
-            onClick={signOut}
-            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-            role="menuitem"
-          >
-            Sign out
           </button>
         </div>
       )}
