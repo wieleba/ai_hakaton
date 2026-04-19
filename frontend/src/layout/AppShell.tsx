@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { TopMenu } from './TopMenu';
 import { RightPanel } from './RightPanel';
 import { SideTree } from './SideTree';
+import { useAfkTracking } from '../hooks/useAfkTracking';
 
 const getUsername = (): string => {
   const token = localStorage.getItem('authToken');
@@ -16,6 +17,7 @@ const getUsername = (): string => {
 };
 
 export const AppShell: React.FC = () => {
+  useAfkTracking();
   const username = getUsername();
   return (
     <div className="flex flex-col h-screen">
