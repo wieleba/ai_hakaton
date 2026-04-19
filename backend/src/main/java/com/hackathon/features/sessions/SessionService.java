@@ -13,7 +13,9 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class SessionService {
-  // Upper bound; real JWTs expire sooner, this just keeps the Redis revocation set bounded.
+  // Matches the default `jwt.expiration` (24h). If the JWT lifetime is ever bumped
+  // past this, the revocation entry must be stretched to match or a revoked token
+  // could become reusable after the entry expires.
   private static final long REVOCATION_TTL_SECONDS = 24 * 60 * 60L;
 
   private final PresenceService presenceService;

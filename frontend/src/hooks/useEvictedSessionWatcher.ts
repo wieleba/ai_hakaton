@@ -49,7 +49,11 @@ export function useEvictedSessionWatcher(): void {
 
     install();
     const intervalId = window.setInterval(() => {
-      if (!sub) install();
+      if (sub) {
+        window.clearInterval(intervalId);
+        return;
+      }
+      install();
     }, 2000);
 
     return () => {
