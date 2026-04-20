@@ -26,18 +26,18 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
 
   if (isDeleted) {
     return (
-      <div className="bg-gray-50 rounded p-3 border-l-4 border-gray-300">
+      <div className="bg-gray-50 rounded p-3 border-l-4 border-gray-300 dark:bg-discord-sidebar dark:border-discord-border">
         <div className="flex justify-between items-baseline">
-          <span className="font-semibold text-sm text-gray-400">{message.username}</span>
-          <span className="text-xs text-gray-400">{timestamp}</span>
+          <span className="font-semibold text-sm text-gray-400 dark:text-discord-dim">{message.username}</span>
+          <span className="text-xs text-gray-400 dark:text-discord-dim">{timestamp}</span>
         </div>
-        <p className="text-gray-400 italic mt-1">Message deleted</p>
+        <p className="text-gray-400 italic mt-1 dark:text-discord-dim">Message deleted</p>
       </div>
     );
   }
 
   return (
-    <div className="group relative bg-gray-50 rounded p-3 border-l-4 border-blue-500">
+    <div className="group relative bg-gray-50 rounded p-3 border-l-4 border-blue-500 dark:bg-discord-sidebar dark:border-discord-accent">
       <MessageActionsMenu
         isAuthor={isAuthor}
         onReply={() => onReply(message)}
@@ -51,8 +51,8 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
       />
 
       <div className="flex justify-between items-baseline">
-        <span className="font-semibold text-sm">{message.username}</span>
-        <span className="text-xs text-gray-400">
+        <span className="font-semibold text-sm dark:text-discord-text">{message.username}</span>
+        <span className="text-xs text-gray-400 dark:text-discord-dim">
           {timestamp}
           {edited && <span className="ml-1">(edited)</span>}
         </span>
@@ -80,7 +80,7 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
         ) : (
           <>
             {message.text && (
-              <p className="text-gray-700 mt-1 whitespace-pre-wrap">{message.text}</p>
+              <p className="text-gray-700 mt-1 whitespace-pre-wrap dark:text-discord-text">{message.text}</p>
             )}
             {extractYouTubeIds(message.text).map((id) => (
               <YouTubeEmbed key={id} videoId={id} />

@@ -45,19 +45,19 @@ export const SearchDropdown: React.FC = () => {
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 150)}
         placeholder="Search rooms or users…"
-        className="w-full text-sm border rounded px-2 py-1"
+        className="w-full text-sm border rounded px-2 py-1 dark:bg-discord-input dark:border-discord-border dark:text-discord-text dark:placeholder-discord-dim"
       />
       {show && (
-        <div className="absolute left-0 right-0 mt-1 bg-white border rounded shadow z-50 max-h-80 overflow-y-auto">
+        <div className="absolute left-0 right-0 mt-1 bg-white border rounded shadow z-50 max-h-80 overflow-y-auto dark:bg-discord-sidebar dark:border-discord-border">
           {isLoading && (
-            <div className="px-3 py-2 text-xs text-gray-400">Searching…</div>
+            <div className="px-3 py-2 text-xs text-gray-400 dark:text-discord-dim">Searching…</div>
           )}
           {!isLoading && results.rooms.length === 0 && results.users.length === 0 && (
-            <div className="px-3 py-2 text-xs text-gray-400">No matches</div>
+            <div className="px-3 py-2 text-xs text-gray-400 dark:text-discord-dim">No matches</div>
           )}
           {results.rooms.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-xs font-semibold uppercase text-gray-500 bg-gray-50">
+              <div className="px-3 py-1 text-xs font-semibold uppercase text-gray-500 bg-gray-50 dark:bg-discord-deep dark:text-discord-dim">
                 Rooms
               </div>
               <ul>
@@ -66,7 +66,7 @@ export const SearchDropdown: React.FC = () => {
                     <button
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => openRoom(r.id)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:text-discord-text dark:hover:bg-discord-hover"
                     >
                       # {r.name}
                     </button>
@@ -77,7 +77,7 @@ export const SearchDropdown: React.FC = () => {
           )}
           {results.users.length > 0 && (
             <div>
-              <div className="px-3 py-1 text-xs font-semibold uppercase text-gray-500 bg-gray-50">
+              <div className="px-3 py-1 text-xs font-semibold uppercase text-gray-500 bg-gray-50 dark:bg-discord-deep dark:text-discord-dim">
                 Users
               </div>
               <ul>
@@ -86,7 +86,7 @@ export const SearchDropdown: React.FC = () => {
                     <button
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => openUser(u.id)}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:text-discord-text dark:hover:bg-discord-hover"
                     >
                       {u.username}
                     </button>

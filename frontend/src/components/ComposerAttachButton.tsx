@@ -22,7 +22,7 @@ export const ComposerAttachButton: React.FC<Props> = ({ onFile, disabled }) => {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={disabled}
-        className="px-2 py-1 text-lg hover:bg-gray-100 rounded disabled:opacity-50"
+        className="px-2 py-1 text-lg hover:bg-gray-100 rounded disabled:opacity-50 dark:hover:bg-discord-hover"
         aria-label="Attach file"
       >
         📎

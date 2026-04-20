@@ -34,11 +34,11 @@ export const SideTreeContactList: React.FC<Props> = ({ friends, conversations })
 
   return (
     <details open className="px-2 py-1">
-      <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500 py-1">
+      <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500 py-1 dark:text-discord-dim">
         Contacts
       </summary>
       {friends.length === 0 ? (
-        <p className="pl-4 pr-2 text-xs text-gray-400 italic py-1">No friends yet</p>
+        <p className="pl-4 pr-2 text-xs text-gray-400 italic py-1 dark:text-discord-dim">No friends yet</p>
       ) : (
         <ul>
           {friends.map((f) => {
@@ -51,7 +51,7 @@ export const SideTreeContactList: React.FC<Props> = ({ friends, conversations })
                     e.preventDefault();
                     openDm(f.userId);
                   }}
-                  className="flex items-center justify-between pl-4 pr-2 py-1 text-sm hover:bg-gray-100 rounded"
+                  className="flex items-center justify-between pl-4 pr-2 py-1 text-sm hover:bg-gray-100 rounded dark:text-discord-text dark:hover:bg-discord-hover"
                 >
                   <span className="truncate">
                     {(() => {

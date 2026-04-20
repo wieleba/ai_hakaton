@@ -38,27 +38,27 @@ export const MessageActionsMenu: React.FC<Props> = ({
   return (
     <div
       ref={wrapperRef}
-      className="absolute top-1 right-2 hidden group-hover:flex gap-1 bg-white border rounded shadow px-1 py-0.5 text-xs"
+      className="absolute top-1 right-2 hidden group-hover:flex gap-1 bg-white border rounded shadow px-1 py-0.5 text-xs dark:bg-discord-sidebar dark:border-discord-border dark:text-discord-text"
     >
       <button
         type="button"
         onClick={() => setPickerOpen((v) => !v)}
-        className="px-2 py-0.5 hover:bg-gray-100 rounded"
+        className="px-2 py-0.5 hover:bg-gray-100 rounded dark:hover:bg-discord-hover"
         aria-label="React"
       >
         😀+
       </button>
-      <button onClick={onReply} className="px-2 py-0.5 hover:bg-gray-100 rounded" aria-label="Reply">
+      <button onClick={onReply} className="px-2 py-0.5 hover:bg-gray-100 rounded dark:hover:bg-discord-hover" aria-label="Reply">
         ↩ Reply
       </button>
       {isAuthor && (
         <>
-          <button onClick={onEdit} className="px-2 py-0.5 hover:bg-gray-100 rounded" aria-label="Edit">
+          <button onClick={onEdit} className="px-2 py-0.5 hover:bg-gray-100 rounded dark:hover:bg-discord-hover" aria-label="Edit">
             ✎ Edit
           </button>
           <button
             onClick={onDelete}
-            className="px-2 py-0.5 hover:bg-red-50 text-red-600 rounded"
+            className="px-2 py-0.5 hover:bg-red-50 text-red-600 rounded dark:text-red-400 dark:hover:bg-red-900/30"
             aria-label="Delete"
           >
             🗑 Delete

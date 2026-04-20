@@ -48,7 +48,7 @@ export const InlineMessageEditor: React.FC<Props> = ({ initialText, onSave, onCa
         onKeyDown={onKeyDown}
         rows={3}
         disabled={busy}
-        className="w-full border rounded px-2 py-1 resize-none text-sm"
+        className="w-full border rounded px-2 py-1 resize-none text-sm dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
         autoFocus
       />
       {error && <div className="text-xs text-red-500">{error}</div>}
@@ -56,14 +56,14 @@ export const InlineMessageEditor: React.FC<Props> = ({ initialText, onSave, onCa
         <button
           onClick={save}
           disabled={busy || !text.trim()}
-          className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-400"
+          className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-400 dark:bg-discord-accent dark:hover:bg-indigo-500 dark:disabled:bg-discord-hover dark:disabled:text-discord-dim"
         >
           {busy ? 'Saving…' : 'Save'}
         </button>
-        <button onClick={onCancel} disabled={busy} className="px-3 py-1 border rounded">
+        <button onClick={onCancel} disabled={busy} className="px-3 py-1 border rounded dark:border-discord-border dark:hover:bg-discord-hover dark:text-discord-text">
           Cancel
         </button>
-        <span className="text-gray-400 self-center">Ctrl+Enter · Esc</span>
+        <span className="text-gray-400 self-center dark:text-discord-dim">Ctrl+Enter · Esc</span>
       </div>
     </div>
   );

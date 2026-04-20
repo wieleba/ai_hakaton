@@ -120,8 +120,8 @@ export const DirectChatPage: React.FC = () => {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      <div className="bg-white shadow p-4 border-b">
-        <h1 className="text-xl font-bold">Direct Message</h1>
+      <div className="bg-white shadow p-4 border-b dark:bg-discord-sidebar dark:border-discord-border">
+        <h1 className="text-xl font-bold dark:text-discord-text">Direct Message</h1>
       </div>
       <MessageList
         messages={adapted}

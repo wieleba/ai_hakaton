@@ -14,11 +14,11 @@ export const SideTreeRoomList: React.FC<Props> = ({ title, rooms, emptyHint }) =
   const { roomCount } = useUnread();
   return (
     <details open className="px-2 py-1">
-      <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500 py-1">
+      <summary className="cursor-pointer text-xs font-semibold uppercase text-gray-500 py-1 dark:text-discord-dim">
         {title}
       </summary>
       {rooms.length === 0 ? (
-        <p className="pl-4 pr-2 text-xs text-gray-400 italic py-1">{emptyHint}</p>
+        <p className="pl-4 pr-2 text-xs text-gray-400 italic py-1 dark:text-discord-dim">{emptyHint}</p>
       ) : (
         <ul>
           {rooms.map((r) => {
@@ -29,7 +29,9 @@ export const SideTreeRoomList: React.FC<Props> = ({ title, rooms, emptyHint }) =
                 <Link
                   to={to}
                   className={`block pl-4 pr-2 py-1 text-sm truncate rounded ${
-                    active ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'
+                    active
+                      ? 'bg-blue-100 text-blue-700 dark:bg-discord-accent/20 dark:text-blue-300'
+                      : 'hover:bg-gray-100 dark:text-discord-text dark:hover:bg-discord-hover'
                   }`}
                 >
                   # {r.name}

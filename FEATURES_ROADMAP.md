@@ -99,6 +99,12 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - `MessageList` displays oldest-first, newest-last (classic chat layout); hook state stays newest-first so WS event handling is unchanged
 - Scroll snaps to bottom only on a genuinely new message (newest id changed); loading older history preserves scroll position
 
+### UI polish: Light / dark theme toggle ✅
+- Discord-inspired dark palette (`discord-deep`, `sidebar`, `base`, `hover`, `input`, `border`, `text`, `muted`, `dim`, `accent`) wired into Tailwind with `darkMode: 'class'`
+- `useTheme` singleton (useSyncExternalStore) — persists choice in `localStorage`, falls back to `prefers-color-scheme`, applied before first React render to avoid flash
+- Theme toggle button in the profile dropdown (between *Change password* and the separator)
+- `dark:` variants across layout (TopMenu, AppShell, SideTree, SideTreeRoomList, SideTreeContactList, SearchDropdown, ProfileMenu), pages (Login, Register, Forgot/Reset password, Rooms, Sessions, Friends, DMs, Direct chat, ChatPage), and components (MessageList/Item/Input, RoomMembersPanel, RoomInvitationList, RoomCreateModal, ManageRoomModal, InviteUserModal, DeleteAccountModal, ChangePasswordModal, DeleteRoomDialog, BanListPanel, ConversationList, FriendsList, FriendRequestList, SendFriendRequestForm, ReplyPill, ReactionsBar, MessageActionsMenu, InlineMessageEditor, ComposerActions/AttachButton, EmojiPickerButton, AttachmentPreviewChip)
+
 ### Feature #10: YouTube link embeds in messages ✅
 - Detect YouTube URLs in message text (youtube.com/watch, youtu.be, youtube.com/shorts, youtube.com/embed)
 - Inline `<iframe>` player using `youtube-nocookie.com` (privacy mode — no cookies until play)

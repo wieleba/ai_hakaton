@@ -13,13 +13,13 @@ export default function ResetPasswordPage() {
 
   if (!token) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="bg-white rounded-lg shadow p-8 w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 dark:bg-discord-base">
+        <div className="bg-white rounded-lg shadow p-8 w-full max-w-md dark:bg-discord-sidebar dark:text-discord-text">
           <h1 className="text-2xl font-bold mb-4 text-center">Invalid link</h1>
-          <p className="text-sm text-gray-700 mb-4">
+          <p className="text-sm text-gray-700 mb-4 dark:text-discord-muted">
             This reset link is missing its token. Request a fresh one.
           </p>
-          <Link to="/forgot-password" className="text-blue-500 hover:underline">
+          <Link to="/forgot-password" className="text-blue-500 hover:underline dark:text-blue-400">
             Request a new link
           </Link>
         </div>
@@ -50,8 +50,8 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white rounded-lg shadow p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 dark:bg-discord-base">
+      <div className="bg-white rounded-lg shadow p-8 w-full max-w-md dark:bg-discord-sidebar dark:text-discord-text">
         <h1 className="text-2xl font-bold mb-6 text-center">Set a new password</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
               onChange={(e) => setPw(e.target.value)}
               required
               minLength={8}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
             />
           </div>
           <div>
@@ -79,14 +79,14 @@ export default function ResetPasswordPage() {
               onChange={(e) => setConfirm(e.target.value)}
               required
               minLength={8}
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
             />
           </div>
           {error && <div className="text-sm text-red-600">{error}</div>}
           <button
             type="submit"
             disabled={busy}
-            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+            className="w-full px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 dark:bg-discord-accent dark:hover:bg-indigo-500"
           >
             {busy ? 'Saving…' : 'Save new password'}
           </button>

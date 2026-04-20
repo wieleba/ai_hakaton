@@ -73,7 +73,10 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
     const remaining = MAX_LENGTH - text.length;
 
     return (
-      <form onSubmit={handleSubmit} className="border-t p-4 bg-white rounded">
+      <form
+        onSubmit={handleSubmit}
+        className="border-t p-4 bg-white rounded dark:bg-discord-sidebar dark:border-discord-border"
+      >
         <ComposerActions>{actions}</ComposerActions>
         <div className="flex gap-2">
           <textarea
@@ -85,17 +88,17 @@ export const MessageInput = forwardRef<MessageInputHandle, MessageInputProps>(
             placeholder="Type a message... (Ctrl+Enter to send)"
             disabled={disabled}
             rows={3}
-            className="flex-1 border rounded px-3 py-2 resize-none"
+            className="flex-1 border rounded px-3 py-2 resize-none dark:bg-discord-input dark:border-discord-border dark:text-discord-text dark:placeholder-discord-dim"
           />
           <button
             type="submit"
             disabled={disabled || (!text.trim() && !canSubmitWithoutText)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 self-end"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 self-end dark:bg-discord-accent dark:hover:bg-indigo-500 dark:disabled:bg-discord-hover dark:disabled:text-discord-dim"
           >
             Send
           </button>
         </div>
-        <div className="text-xs text-gray-500 mt-2">
+        <div className="text-xs text-gray-500 mt-2 dark:text-discord-dim">
           {remaining} characters remaining · Ctrl+Enter (⌘+Enter on Mac) to send
         </div>
       </form>

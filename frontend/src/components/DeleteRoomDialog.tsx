@@ -13,9 +13,9 @@ export const DeleteRoomDialog: React.FC<Props> = ({ isOpen, roomName, onConfirm,
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-96 dark:bg-discord-sidebar dark:text-discord-text">
         <h2 className="text-xl font-bold mb-2">Delete room?</h2>
-        <p className="text-sm text-gray-700 mb-4">
+        <p className="text-sm text-gray-700 mb-4 dark:text-discord-muted">
           This will permanently delete <strong>{roomName}</strong> and all of its messages. This
           cannot be undone.
         </p>
@@ -24,7 +24,7 @@ export const DeleteRoomDialog: React.FC<Props> = ({ isOpen, roomName, onConfirm,
             type="button"
             onClick={onClose}
             disabled={busy}
-            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded dark:text-discord-muted dark:hover:bg-discord-hover"
           >
             Cancel
           </button>

@@ -32,29 +32,29 @@ export const BanListPanel: React.FC<Props> = ({ isOpen, onClose, roomId }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-[28rem]">
+      <div className="bg-white rounded-lg p-6 w-[28rem] dark:bg-discord-sidebar dark:text-discord-text">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Banned users</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-discord-dim dark:hover:text-discord-text">
             ×
           </button>
         </div>
         {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
         {bans.length === 0 ? (
-          <p className="text-gray-500 italic">No banned users.</p>
+          <p className="text-gray-500 italic dark:text-discord-dim">No banned users.</p>
         ) : (
-          <ul className="divide-y">
+          <ul className="divide-y dark:divide-discord-border">
             {bans.map((b) => (
               <li key={b.bannedUserId} className="flex justify-between items-center py-2">
                 <div>
                   <div className="font-medium">{b.bannedUsername}</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-500 dark:text-discord-dim">
                     banned by {b.bannedByUsername} on {new Date(b.bannedAt).toLocaleString()}
                   </div>
                 </div>
                 <button
                   onClick={() => unban(b.bannedUserId)}
-                  className="px-3 py-1 border rounded hover:bg-gray-100"
+                  className="px-3 py-1 border rounded hover:bg-gray-100 dark:border-discord-border dark:hover:bg-discord-hover"
                 >
                   Unban
                 </button>

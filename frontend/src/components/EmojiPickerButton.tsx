@@ -29,7 +29,7 @@ export const EmojiPickerButton: React.FC<Props> = ({ onPick }) => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="px-2 py-1 text-lg hover:bg-gray-100 rounded"
+        className="px-2 py-1 text-lg hover:bg-gray-100 rounded dark:hover:bg-discord-hover"
         aria-label="Insert emoji"
       >
         😀

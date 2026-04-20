@@ -113,7 +113,7 @@ export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => 
   };
 
   return (
-    <aside className="w-72 border-l bg-white p-4 overflow-y-auto">
+    <aside className="w-72 border-l bg-white p-4 overflow-y-auto dark:bg-discord-sidebar dark:border-discord-border dark:text-discord-text">
       <div>
         <h3 className="font-semibold text-lg truncate">{room?.name ?? 'Loading\u2026'}</h3>
         {room && (
@@ -134,18 +134,18 @@ export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => 
       {renderGroup('Offline', 'OFFLINE', offline)}
 
       {isAdmin && (
-        <div className="mt-4 pt-4 border-t space-y-2">
+        <div className="mt-4 pt-4 border-t space-y-2 dark:border-discord-border">
           {room?.visibility === 'private' && (
             <button
               onClick={() => setInviteOpen(true)}
-              className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm"
+              className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm dark:border-discord-border dark:hover:bg-discord-hover"
             >
               Invite user
             </button>
           )}
           <button
             onClick={() => setManageOpen(true)}
-            className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm"
+            className="w-full px-3 py-2 border rounded hover:bg-blue-50 text-sm dark:border-discord-border dark:hover:bg-discord-hover"
           >
             Manage room
           </button>

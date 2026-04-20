@@ -62,12 +62,12 @@ export const SideTree: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="p-2 border-b">
+      <div className="p-2 border-b dark:border-discord-border">
         <SearchDropdown />
       </div>
       <div className="flex-1 overflow-y-auto">
         <div className="py-1">
-          <div className="px-2 pt-2 pb-1 text-xs font-bold uppercase text-gray-600">Rooms</div>
+          <div className="px-2 pt-2 pb-1 text-xs font-bold uppercase text-gray-600 dark:text-discord-dim">Rooms</div>
           <SideTreeRoomList
             title="Public"
             rooms={publicRooms}
@@ -79,14 +79,14 @@ export const SideTree: React.FC = () => {
             emptyHint="No private rooms"
           />
         </div>
-        <div className="py-1 border-t">
+        <div className="py-1 border-t dark:border-discord-border">
           <SideTreeContactList friends={friends} conversations={conversations} />
         </div>
       </div>
-      <div className="p-2 border-t">
+      <div className="p-2 border-t dark:border-discord-border">
         <button
           onClick={() => setIsCreateOpen(true)}
-          className="w-full text-sm px-3 py-2 border rounded hover:bg-gray-100"
+          className="w-full text-sm px-3 py-2 border rounded hover:bg-gray-100 dark:border-discord-border dark:text-discord-text dark:hover:bg-discord-hover"
         >
           + Create room
         </button>

@@ -59,7 +59,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-96 dark:bg-discord-sidebar dark:text-discord-text">
         <h2 className="text-xl font-bold mb-4">Change password</h2>
         <form onSubmit={submit} className="space-y-3">
           <input
@@ -69,7 +69,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
             placeholder="Current password"
             autoComplete="current-password"
             disabled={busy}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text dark:placeholder-discord-dim"
           />
           <input
             type="password"
@@ -78,7 +78,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
             placeholder="New password (min 8 characters)"
             autoComplete="new-password"
             disabled={busy}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text dark:placeholder-discord-dim"
           />
           <input
             type="password"
@@ -87,7 +87,7 @@ export const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
             placeholder="Confirm new password"
             autoComplete="new-password"
             disabled={busy}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text dark:placeholder-discord-dim"
           />
           {error && <div className="text-red-500 text-sm">{error}</div>}
           <div className="flex gap-2 justify-end">
@@ -95,14 +95,14 @@ export const ChangePasswordModal: React.FC<Props> = ({ isOpen, onClose }) => {
               type="button"
               onClick={close}
               disabled={busy}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded dark:text-discord-muted dark:hover:bg-discord-hover"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={busy || !oldPassword || !newPassword || !confirmPassword}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 dark:bg-discord-accent dark:hover:bg-indigo-500 dark:disabled:bg-discord-hover dark:disabled:text-discord-dim"
             >
               {busy ? 'Saving…' : 'Change password'}
             </button>

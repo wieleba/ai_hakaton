@@ -45,24 +45,24 @@ export const DeleteAccountModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-[28rem]">
-        <h2 className="text-xl font-bold mb-2 text-red-600">Delete account</h2>
-        <p className="text-sm text-gray-700 mb-3">
+      <div className="bg-white rounded-lg p-6 w-[28rem] dark:bg-discord-sidebar dark:text-discord-text">
+        <h2 className="text-xl font-bold mb-2 text-red-600 dark:text-red-400">Delete account</h2>
+        <p className="text-sm text-gray-700 mb-3 dark:text-discord-muted">
           This permanently deletes your account and everything you own:
         </p>
-        <ul className="text-sm text-gray-700 mb-4 list-disc pl-5 space-y-1">
+        <ul className="text-sm text-gray-700 mb-4 list-disc pl-5 space-y-1 dark:text-discord-muted">
           <li>Every chat room you own (with all its messages)</li>
           <li>Your memberships in other rooms</li>
           <li>Your friendships, direct-message conversations, and bans</li>
           <li>Reactions and invitations you sent or received</li>
         </ul>
-        <p className="text-sm text-gray-700 mb-3">
+        <p className="text-sm text-gray-700 mb-3 dark:text-discord-muted">
           Messages you sent in other people's rooms stay, but your name becomes
           "Deleted user".
         </p>
         <form onSubmit={submit} className="space-y-3">
           <label className="block text-sm font-medium">
-            Type <code className="bg-gray-100 px-1 rounded">{CONFIRM_PHRASE}</code> to confirm:
+            Type <code className="bg-gray-100 px-1 rounded dark:bg-discord-input dark:text-discord-text">{CONFIRM_PHRASE}</code> to confirm:
           </label>
           <input
             type="text"
@@ -70,7 +70,7 @@ export const DeleteAccountModal: React.FC<Props> = ({ isOpen, onClose }) => {
             onChange={(e) => setTyped(e.target.value)}
             disabled={busy}
             autoComplete="off"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
           />
           {error && <div className="text-red-500 text-sm">{error}</div>}
           <div className="flex gap-2 justify-end">
@@ -78,7 +78,7 @@ export const DeleteAccountModal: React.FC<Props> = ({ isOpen, onClose }) => {
               type="button"
               onClick={close}
               disabled={busy}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded dark:text-discord-muted dark:hover:bg-discord-hover"
             >
               Cancel
             </button>

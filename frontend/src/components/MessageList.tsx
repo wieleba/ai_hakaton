@@ -47,19 +47,19 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div
       ref={listRef}
-      className="flex-1 min-h-0 overflow-y-auto bg-white p-4 border rounded mb-4"
+      className="flex-1 min-h-0 overflow-y-auto bg-white p-4 border rounded mb-4 dark:bg-discord-base dark:border-discord-border"
     >
       {hasMore && !isLoading && (
         <button
           onClick={onLoadMore}
-          className="w-full text-center text-blue-500 text-sm mb-4 hover:underline"
+          className="w-full text-center text-blue-500 text-sm mb-4 hover:underline dark:text-blue-400"
         >
           Load older messages
         </button>
       )}
-      {isLoading && <div className="text-center text-gray-500">Loading...</div>}
+      {isLoading && <div className="text-center text-gray-500 dark:text-discord-dim">Loading...</div>}
       {messages.length === 0 && !isLoading && (
-        <div className="text-center text-gray-500">No messages yet</div>
+        <div className="text-center text-gray-500 dark:text-discord-dim">No messages yet</div>
       )}
       <div className="space-y-3">
         {ordered.map((m) => (

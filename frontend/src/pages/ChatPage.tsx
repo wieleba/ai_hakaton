@@ -110,18 +110,18 @@ export const ChatPage: React.FC = () => {
   };
 
   return (
-    <div className="h-full bg-gray-100 flex flex-col min-h-0">
-      <div className="bg-white shadow p-4 border-b">
+    <div className="h-full bg-gray-100 flex flex-col min-h-0 dark:bg-discord-base">
+      <div className="bg-white shadow p-4 border-b dark:bg-discord-sidebar dark:border-discord-border">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">{currentRoom?.name || 'Loading...'}</h1>
+            <h1 className="text-2xl font-bold dark:text-discord-text">{currentRoom?.name || 'Loading...'}</h1>
             {currentRoom?.description && (
-              <p className="text-gray-600 text-sm">{currentRoom.description}</p>
+              <p className="text-gray-600 text-sm dark:text-discord-muted">{currentRoom.description}</p>
             )}
           </div>
           <button
             onClick={handleLeaveRoom}
-            className="px-4 py-2 border rounded hover:bg-gray-100"
+            className="px-4 py-2 border rounded hover:bg-gray-100 dark:border-discord-border dark:text-discord-text dark:hover:bg-discord-hover"
           >
             Leave Room
           </button>

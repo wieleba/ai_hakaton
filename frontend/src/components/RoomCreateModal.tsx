@@ -38,7 +38,7 @@ export const RoomCreateModal: React.FC<RoomCreateModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-96">
+      <div className="bg-white rounded-lg p-6 w-96 dark:bg-discord-sidebar dark:text-discord-text">
         <h2 className="text-xl font-bold mb-4">Create Room</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -47,7 +47,7 @@ export const RoomCreateModal: React.FC<RoomCreateModalProps> = ({ isOpen, onClos
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
               placeholder="Enter room name"
               disabled={isLoading}
             />
@@ -58,7 +58,7 @@ export const RoomCreateModal: React.FC<RoomCreateModalProps> = ({ isOpen, onClos
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 dark:bg-discord-input dark:border-discord-border dark:text-discord-text"
               placeholder="Enter description"
               disabled={isLoading}
               rows={3}
@@ -99,14 +99,14 @@ export const RoomCreateModal: React.FC<RoomCreateModalProps> = ({ isOpen, onClos
               type="button"
               onClick={onClose}
               disabled={isLoading}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded dark:text-discord-muted dark:hover:bg-discord-hover"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400 dark:bg-discord-accent dark:hover:bg-indigo-500 dark:disabled:bg-discord-hover dark:disabled:text-discord-dim"
             >
               {isLoading ? 'Creating...' : 'Create'}
             </button>

@@ -22,13 +22,16 @@ export const AppShell: React.FC = () => {
   useEvictedSessionWatcher();
   const username = getUsername();
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-screen dark:bg-discord-base">
       <TopMenu username={username} />
       <div className="flex flex-1 min-h-0">
-        <aside className="w-64 border-r bg-white overflow-y-auto" aria-label="Workspace">
+        <aside
+          className="w-64 border-r bg-white overflow-y-auto dark:bg-discord-sidebar dark:border-discord-border"
+          aria-label="Workspace"
+        >
           <SideTree />
         </aside>
-        <main className="flex-1 min-w-0 overflow-hidden">
+        <main className="flex-1 min-w-0 overflow-hidden dark:bg-discord-base">
           <Outlet />
         </main>
         <RightPanel />

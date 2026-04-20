@@ -17,8 +17,8 @@ export const ReactionsBar: React.FC<Props> = ({ reactions, onToggle }) => {
           onClick={() => onToggle(r.emoji)}
           className={`text-xs px-2 py-0.5 rounded border ${
             r.reactedByMe
-              ? 'bg-blue-50 border-blue-300 text-blue-700'
-              : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+              ? 'bg-blue-50 border-blue-300 text-blue-700 dark:bg-discord-accent/20 dark:border-discord-accent/60 dark:text-blue-300'
+              : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-discord-base dark:border-discord-border dark:text-discord-text dark:hover:bg-discord-hover'
           }`}
           aria-label={`Toggle reaction ${r.emoji}`}
         >

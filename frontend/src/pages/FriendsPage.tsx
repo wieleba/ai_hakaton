@@ -22,7 +22,7 @@ export const FriendsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 space-y-6 overflow-y-auto h-full">
+    <div className="max-w-2xl mx-auto p-6 space-y-6 overflow-y-auto h-full dark:text-discord-text">
       <h1 className="text-2xl font-bold">Friends</h1>
       <SendFriendRequestForm onSubmit={handleSendRequest} />
       <FriendRequestList
@@ -32,7 +32,7 @@ export const FriendsPage: React.FC = () => {
         onReject={reject}
         onCancel={cancel}
       />
-      <hr />
+      <hr className="dark:border-discord-border" />
       <h2 className="text-xl font-semibold">Friends list</h2>
       <FriendsList friends={friends} onRemove={removeFriend} onBan={banUser} />
     </div>

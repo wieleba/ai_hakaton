@@ -48,36 +48,36 @@ export const RoomListPage: React.FC = () => {
   const renderRoomCard = (room: ChatRoom) => (
     <div
       key={room.id}
-      className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg"
+      className="bg-white rounded-lg shadow p-4 cursor-pointer hover:shadow-lg dark:bg-discord-sidebar dark:hover:bg-discord-hover"
       onClick={() => navigate(`/rooms/${room.id}`)}
     >
       <div className="flex justify-between items-start mb-2">
-        <h2 className="text-lg font-bold">{room.name}</h2>
+        <h2 className="text-lg font-bold dark:text-discord-text">{room.name}</h2>
         <span
           className={`text-xs px-2 py-1 rounded ${
             room.visibility === 'private'
-              ? 'bg-purple-100 text-purple-700'
-              : 'bg-green-100 text-green-700'
+              ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300'
+              : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
           }`}
         >
           {room.visibility}
         </span>
       </div>
-      {room.description && <p className="text-gray-600 text-sm mb-4">{room.description}</p>}
-      <div className="text-xs text-gray-400">
+      {room.description && <p className="text-gray-600 text-sm mb-4 dark:text-discord-muted">{room.description}</p>}
+      <div className="text-xs text-gray-400 dark:text-discord-dim">
         Created {new Date(room.createdAt).toLocaleDateString()}
       </div>
     </div>
   );
 
   return (
-    <div className="h-full bg-gray-100 p-6 overflow-y-auto">
+    <div className="h-full bg-gray-100 p-6 overflow-y-auto dark:bg-discord-base">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Public Rooms</h1>
+          <h1 className="text-3xl font-bold dark:text-discord-text">Public Rooms</h1>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-discord-accent dark:hover:bg-indigo-500"
           >
             New Room
           </button>
@@ -95,7 +95,7 @@ export const RoomListPage: React.FC = () => {
           {publicRooms.map(renderRoomCard)}
         </div>
         {publicRooms.length === 0 && (
-          <p className="text-gray-500 italic">No public rooms yet.</p>
+          <p className="text-gray-500 italic dark:text-discord-dim">No public rooms yet.</p>
         )}
 
         <RoomCreateModal
