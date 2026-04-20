@@ -40,9 +40,11 @@ test.describe('Account management', () => {
       alice.password,
     );
 
-    // Open profile menu and click "Change password"
+    // Open profile menu and navigate to account settings, then click "Change password"
     await page.getByRole('button', { name: new RegExp(alice.username) }).click();
-    await page.getByRole('menuitem', { name: 'Change password' }).click();
+    await page.getByRole('menuitem', { name: 'Account settings' }).click();
+    await page.waitForURL(/.*\/account$/);
+    await page.getByRole('button', { name: 'Change password' }).click();
 
     await page.fill('input[placeholder="Current password"]', alice.password);
     const newPassword = 'newpassword123';
@@ -74,7 +76,9 @@ test.describe('Account management', () => {
     );
 
     await page.getByRole('button', { name: new RegExp(bob.username) }).click();
-    await page.getByRole('menuitem', { name: 'Delete account' }).click();
+    await page.getByRole('menuitem', { name: 'Account settings' }).click();
+    await page.waitForURL(/.*\/account$/);
+    await page.getByRole('button', { name: 'Delete account' }).click();
 
     await page.fill('input[autocomplete="off"]', 'DELETE');
     await page.click('div.fixed button:has-text("Delete account"):not(:has-text("Cancel"))');

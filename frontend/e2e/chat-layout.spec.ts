@@ -105,4 +105,32 @@ test.describe('Chat layout', () => {
 
     await ctx.close();
   });
+
+  test('sending a YouTube link renders an inline iframe', async ({ browser }) => {
+    const u = uniqueUser('ytembed');
+    const { ctx, page, token } = await registerAndLogin(browser, u.email, u.username, u.password);
+
+    // Create a bare room (no pre-seeded messages).
+    const auth = { Authorization: `Bearer ${token}` };
+    const createRes = await page.request.post(`${BACKEND_URL}/api/rooms`, {
+      headers: auth,
+      data: { name: `yt-room-${Date.now().toString().slice(-7)}` },
+    });
+    expect(createRes.ok()).toBeTruthy();
+    const room = await createRes.json();
+
+    await page.goto(`/rooms/${room.id}`);
+    await page.waitForLoadState('networkidle');
+
+    const composer = page.getByPlaceholder(/type a message/i);
+    await composer.fill('check this https://youtu.be/dQw4w9WgXcQ');
+    await composer.press('Control+Enter');
+
+    // Iframe with title "YouTube video <id>" must appear. Allow 10 s for
+    // backend extract + oEmbed (may be slow when YouTube rate-limits) + WS + render.
+    await expect(page.locator('iframe[title="YouTube video dQw4w9WgXcQ"]'))
+      .toBeVisible({ timeout: 10_000 });
+
+    await ctx.close();
+  });
 });

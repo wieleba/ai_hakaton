@@ -180,13 +180,20 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Completed 2026-04-20
 - **Status: COMPLETE**
 
-### Feature #11: Server-side embed metadata (split out of #10)
-- Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
-- Persist `message_embeds` table per message with `kind`, `source_url`, `canonical_id`, cached `title`, `thumbnail_url`
-- Expose on DTOs so clients get pre-parsed metadata instead of each re-running regex
-- Enables: server-side moderation (ban a video across rooms), richer previews (thumbnails + titles), search-by-embed-type
-- Split out of Feature #10 because the frontend-only approach gets us the primary UX win (inline video player) with zero schema change; server-side metadata is an enhancement, not a blocker
-- **Status: TODO**
+### Feature #11: Server-side embed metadata (split out of #10) ✅
+- YouTube URL extraction in Java mirrors `frontend/src/utils/youtube.ts` (watch, youtu.be, shorts, embed) — `YouTubeUrlExtractor` pure function
+- `YouTubeOEmbedClient` calls `https://www.youtube.com/oembed` synchronously with a 1.5 s timeout; any failure returns `Optional.empty()` and the row persists with `title = null, thumbnail_url = null` (WARN-logged so prolonged outages remain visible)
+- V12 migration adds `message_embeds` + `direct_message_embeds` (UNIQUE(message_id, canonical_id), CASCADE on message delete, index on `canonical_id` for future cross-room moderation)
+- V13 Flyway Java migration backfills pre-existing messages with a 200 ms throttle; never fails per-row (migration failure would block every future startup)
+- `EmbedService` wired into `MessageService` / `DirectMessageService` send + edit (reconcile removes rows whose URL was removed in an edit)
+- DTO expansion: `ChatMessageDTO` / `DirectMessageDTO` gain `embeds: List<EmbedDto>` populated via `MessageEmbedRepository.findByMessageId`
+- Frontend: `YouTubeEmbed` reshaped to `{ text, embeds }`; prefers DTO data (renders cached `title` above the iframe), falls back to `extractYouTubeIds` regex for unbackfilled rows as a safety net
+- Backend tests: `YouTubeUrlExtractorTest` (9 URL-shape cases), `YouTubeOEmbedClientTest` (MockWebServer: 200/404/429/timeout/malformed), `EmbedServiceTest` (5 scenarios including reconcile), `EmbedFlowIntegrationTest` (round-trip), `BackfillMigrationTest` (3 scenarios: room, DM, combined)
+- Frontend tests: 3 new Vitest cases on `YouTubeEmbed`; Playwright e2e asserts the iframe renders on send
+- Spec: `docs/superpowers/specs/2026-04-20-server-side-embed-metadata-design.md`
+- Plan: `docs/superpowers/plans/2026-04-20-server-side-embed-metadata.md`
+- Completed 2026-04-20
+- **Status: COMPLETE**
 
 ## Key Architecture Notes
 - **Backend:** Spring Boot 3.5.12, Java 25, Gradle 9.4.1, PostgreSQL 15, Flyway
@@ -197,6 +204,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 12 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management, Password Reset) + polish (emoji picker + reactions, chat ordering)
+- **Completed:** 13 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management, Password Reset, Server-side Embed Metadata) + polish (emoji picker + reactions, chat ordering, light/dark theme, account settings page)
 - **In progress:** 0
-- **Remaining:** 1 (Server-side Embed Metadata)
+- **Remaining:** 0
