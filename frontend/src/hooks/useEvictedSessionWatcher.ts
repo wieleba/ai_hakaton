@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { websocketService } from '../services/websocketService';
 import { authService } from '../services/authService';
+import { sessionsService } from '../services/sessionsService';
 
 function currentUserId(): string | null {
   const token = localStorage.getItem('authToken');
@@ -24,6 +25,34 @@ export function useEvictedSessionWatcher(): void {
   const navigate = useNavigate();
   useEffect(() => {
     let sub: { unsubscribe: () => void } | null = null;
+    let evicted = false;
+
+    const redirectEvicted = () => {
+      if (evicted) return;
+      evicted = true;
+      authService.removeAuthToken();
+      websocketService.disconnect();
+      navigate('/login', { replace: true });
+    };
+
+    // Backstop poll: Spring's user-destination fan-out only reliably hits one
+    // of the user's active sessions, so we also check periodically whether
+    // our own STOMP session id has disappeared from /api/sessions — or whether
+    // /api/sessions itself 401s, meaning our JWT was just revoked.
+    const pollEvicted = async () => {
+      const mySid = websocketService.getSessionId();
+      if (!mySid) return;
+      if (!localStorage.getItem('authToken')) return;
+      try {
+        const rows = await sessionsService.list();
+        if (!rows.some((r) => r.sessionId === mySid)) {
+          redirectEvicted();
+        }
+      } catch {
+        // 401 from a revoked token also means evicted.
+        redirectEvicted();
+      }
+    };
 
     const install = () => {
       if (!websocketService.isConnected()) return;
@@ -36,9 +65,7 @@ export function useEvictedSessionWatcher(): void {
             const payload = msg as { type?: string; sessionId?: string };
             if (payload.type !== 'EVICTED') return;
             if (payload.sessionId && payload.sessionId === websocketService.getSessionId()) {
-              authService.removeAuthToken();
-              websocketService.disconnect();
-              navigate('/login', { replace: true });
+              redirectEvicted();
             }
           },
         );
@@ -48,16 +75,18 @@ export function useEvictedSessionWatcher(): void {
     };
 
     install();
-    const intervalId = window.setInterval(() => {
+    const subRetryId = window.setInterval(() => {
       if (sub) {
-        window.clearInterval(intervalId);
+        window.clearInterval(subRetryId);
         return;
       }
       install();
     }, 2000);
+    const pollId = window.setInterval(pollEvicted, 3000);
 
     return () => {
-      window.clearInterval(intervalId);
+      window.clearInterval(subRetryId);
+      window.clearInterval(pollId);
       if (sub) sub.unsubscribe();
     };
   }, [navigate]);

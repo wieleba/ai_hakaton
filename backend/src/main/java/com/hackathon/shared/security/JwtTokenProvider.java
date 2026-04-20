@@ -23,6 +23,11 @@ public class JwtTokenProvider {
     return Jwts.builder()
         .subject(userId.toString())
         .claim("username", username)
+        // Random jti ensures each token is unique even when two logins land in
+        // the same second — without it, iat/exp are seconds-precision and the
+        // signed JWT bytes (and thus the SHA-256 hash keying our revocation
+        // set) would collide, causing "logout one session" to revoke others.
+        .id(UUID.randomUUID().toString())
         .issuedAt(new Date())
         .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
         .signWith(key, SignatureAlgorithm.HS256)

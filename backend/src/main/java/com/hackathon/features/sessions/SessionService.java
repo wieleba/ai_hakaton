@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SessionService {
   // Matches the default `jwt.expiration` (24h). If the JWT lifetime is ever bumped
   // past this, the revocation entry must be stretched to match or a revoked token
@@ -63,10 +65,21 @@ public class SessionService {
       tokenRevocationService.revoke(s.tokenHash(), REVOCATION_TTL_SECONDS);
     }
     // Cooperative notification so the evicted tab can show "logged out from another device".
+    // convertAndSendToUser routes through the broker channel (async), while the
+    // sessionDisconnector writes directly to the outbound channel. Without a pause,
+    // the DISCONNECT frame regularly overtakes the EVICTED relay and closes the
+    // socket before the client ever sees the notification.
+    log.info("revokeAndDisconnect user={} targetSid={}", userId, s.sessionId());
     messagingTemplate.convertAndSendToUser(
         userId.toString(),
         "/queue/sessions",
         new EvictedEvent("EVICTED", s.sessionId()));
+    log.info("sent EVICTED for targetSid={}", s.sessionId());
+    try {
+      Thread.sleep(200);
+    } catch (InterruptedException ie) {
+      Thread.currentThread().interrupt();
+    }
     sessionDisconnector.disconnect(s.sessionId());
     presenceService.markOffline(userId, s.sessionId());
   }

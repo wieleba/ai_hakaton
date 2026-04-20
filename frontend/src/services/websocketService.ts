@@ -1,6 +1,21 @@
 import SockJS from 'sockjs-client';
 import * as Stomp from 'stompjs';
 
+/**
+ * Extract the SockJS server-assigned session id from a transport URL like
+ * `ws://host/ws/chat/539/bypam3j5/websocket` or
+ * `http://host/ws/chat/539/bypam3j5/xhr_streaming`. Returns null when the URL
+ * doesn't match the expected shape.
+ */
+function parseSockJsSessionId(url: string | undefined): string | null {
+  if (!url) return null;
+  // Strip query/fragment, split on /, second-to-last segment is the session id.
+  const path = url.split('?')[0].split('#')[0];
+  const parts = path.split('/').filter(Boolean);
+  if (parts.length < 2) return null;
+  return parts[parts.length - 2] || null;
+}
+
 export interface WebSocketMessage {
   [key: string]: unknown;
 }
@@ -31,7 +46,18 @@ class WebSocketService {
         },
         (frame?: { headers?: Record<string, string> }) => {
           this.pendingConnection = null;
-          this.sessionId = frame?.headers?.session ?? null;
+          // Spring's simple broker doesn't expose the session id via the STOMP
+          // CONNECTED frame, so we fall back to the SockJS transport URL, which
+          // embeds the server-assigned session id between the server id and the
+          // transport name: `/ws/chat/{serverId}/{sessionId}/{transport}`.
+          const headerSid = frame?.headers?.session;
+          if (headerSid) {
+            this.sessionId = headerSid;
+          } else {
+            const sockjs = (client as unknown as { ws?: { _transport?: { url?: string }; url?: string } }).ws;
+            const transportUrl = sockjs?._transport?.url ?? sockjs?.url;
+            this.sessionId = parseSockJsSessionId(transportUrl);
+          }
           resolve();
         },
         (error: unknown) => {
