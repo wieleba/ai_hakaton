@@ -8,6 +8,8 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
 import lombok.extern.slf4j.Slf4j;
+import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smack.packet.StandardExtensionElement;
 import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
 import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.http.MediaType;
@@ -18,13 +20,23 @@ import org.springframework.web.client.RestClient;
 
 /**
  * Listens for {@link DmBridgeEvents.DmCreated} and relays the message into
- * XMPP by posting a {@code <message>} stanza (with a bridge-marker child) to
- * the primary ejabberd server's {@code /api/send_stanza}.
+ * XMPP.
  *
- * <p>Only runs AFTER the DM commit so the blocking HTTP call doesn't hold the
- * send-tx open (same pattern as {@code EmbedService}). Both sender and
- * recipient must have a provisioned JID — if either doesn't, the relay is a
- * no-op. XMPP delivery failure never surfaces back to the caller.
+ * <p>Primary path: send the stanza <em>through the sender's own bridge
+ * Smack connection</em>. This makes ejabberd treat the message as a
+ * user-originated send and fan out XEP-0280 SENT carbons to the user's
+ * other resources (e.g. Psi+), which is how the sent line ends up visible
+ * in the user's XMPP client.
+ *
+ * <p>Fallback path: admin-authenticated {@code /api/send_stanza}. Used when
+ * the sender's bridge session isn't open (backend restart, transient
+ * disconnect, user not JID-safe). SENT carbons are not fanned out on this
+ * path — Psi+ won't see the sent line until the bridge reconnects — but
+ * the recipient still receives it.
+ *
+ * <p>Runs AFTER_COMMIT so the outgoing HTTP / stanza send doesn't hold the
+ * DM transaction open. XMPP delivery failure never surfaces back to the
+ * caller — DM was already persisted before the event fired.
  */
 @Component
 @Slf4j
@@ -32,11 +44,16 @@ public class JabberOutgoingRelay {
 
     private final UserService userService;
     private final JabberProvisioningService provisioning;
+    private final JabberIncomingBridge bridge;
     private final RestClient http;
 
-    public JabberOutgoingRelay(UserService userService, JabberProvisioningService provisioning) {
+    public JabberOutgoingRelay(
+            UserService userService,
+            JabberProvisioningService provisioning,
+            JabberIncomingBridge bridge) {
         this.userService = userService;
         this.provisioning = provisioning;
+        this.bridge = bridge;
         var settings = ClientHttpRequestFactorySettings.defaults()
                 .withConnectTimeout(java.time.Duration.ofMillis(1500))
                 .withReadTimeout(java.time.Duration.ofMillis(1500));
@@ -62,24 +79,46 @@ public class JabberOutgoingRelay {
         String fromJid = sender.getUsername() + "@" + s.domain();
         String toJid = recipient.getUsername() + "@" + s.domain();
         String body = event.text() == null ? "" : event.text();
-        // send_stanza (vs send_message) lets us attach a bridge marker so the
-        // inbound Smack listener can identify — and skip — its own relayed
-        // traffic. Without it, every DM sent from Chat UI would be persisted
-        // twice: once by DirectMessageService.send() and again by
-        // receiveFromXmppBridge() when ejabberd delivers the relay back.
+
+        if (relayThroughSenderSession(sender.getId(), toJid, body)) {
+            log.debug("JabberOutgoingRelay: relayed via session {} → {}", fromJid, toJid);
+            return;
+        }
+        // Fallback: admin API. Recipient still sees it; SENT carbon to Psi+
+        // won't fan out on this path.
+        try {
+            relayViaAdminApi(s, fromJid, toJid, body);
+            log.debug("JabberOutgoingRelay: relayed via admin API {} → {}", fromJid, toJid);
+        } catch (RuntimeException e) {
+            log.warn("JabberOutgoingRelay: failed to relay {} → {}: {}", fromJid, toJid, e.toString());
+        }
+    }
+
+    /**
+     * Build a chat {@link Message} with the bridge marker and hand it to the
+     * sender's Smack connection. Returns false if no session is available so
+     * the caller can fall back.
+     */
+    private boolean relayThroughSenderSession(java.util.UUID senderId, String toJid, String body) {
+        Message msg = new Message();
+        msg.setType(Message.Type.chat);
+        msg.setBody(body);
+        msg.addExtension(StandardExtensionElement.builder(
+                        JabberBridgeStanza.MARKER_ELEMENT, JabberBridgeStanza.MARKER_NAMESPACE)
+                .build());
+        return bridge.sendFromUser(senderId, toJid, msg);
+    }
+
+    private void relayViaAdminApi(
+            JabberProperties.Server s, String fromJid, String toJid, String body) {
         String stanza = "<message type='chat'>"
                 + "<body>" + escapeXml(body) + "</body>"
                 + "<bridge xmlns='" + JabberBridgeStanza.MARKER_NAMESPACE + "'/>"
                 + "</message>";
-        try {
-            callAdminApi(s, "/api/send_stanza", Map.of(
-                    "from", fromJid,
-                    "to", toJid,
-                    "stanza", stanza));
-            log.debug("JabberOutgoingRelay: relayed DM {} → {}", fromJid, toJid);
-        } catch (RuntimeException e) {
-            log.warn("JabberOutgoingRelay: failed to relay {} → {}: {}", fromJid, toJid, e.toString());
-        }
+        callAdminApi(s, "/api/send_stanza", Map.of(
+                "from", fromJid,
+                "to", toJid,
+                "stanza", stanza));
     }
 
     private static String escapeXml(String v) {

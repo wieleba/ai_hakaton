@@ -211,6 +211,32 @@ public class JabberIncomingBridge {
         }
     }
 
+    /**
+     * Send a chat stanza <em>from</em> the given user's own bridge Smack
+     * session. Used by {@link JabberOutgoingRelay} so ejabberd treats the
+     * message as user-originated and fans out XEP-0280 SENT carbons to the
+     * user's other resources (Psi+ etc.) — an admin-API {@code send_stanza}
+     * injection wouldn't trigger that.
+     *
+     * @return {@code true} if the stanza was sent through the user's Smack
+     *     connection; {@code false} if no live bridge session exists (the
+     *     caller should fall back to an alternate delivery path).
+     */
+    public boolean sendFromUser(UUID senderUserId, String toJid, Message stanza) {
+        XMPPTCPConnection conn = connections.get(senderUserId);
+        if (conn == null || !conn.isConnected() || !conn.isAuthenticated()) {
+            return false;
+        }
+        try {
+            stanza.setTo(org.jxmpp.jid.impl.JidCreate.entityBareFrom(toJid));
+            conn.sendStanza(stanza);
+            return true;
+        } catch (Exception e) {
+            log.warn("JabberIncomingBridge: sendFromUser failed for {}: {}", senderUserId, e.toString());
+            return false;
+        }
+    }
+
     private void handleIncomingStanza(User bridgeUser, Message msg) {
         log.debug(
                 "JabberIncomingBridge: stanza for {} type={} from={}",
