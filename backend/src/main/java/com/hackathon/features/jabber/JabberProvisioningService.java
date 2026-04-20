@@ -5,6 +5,7 @@ import com.hackathon.features.users.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -15,6 +16,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -78,10 +80,7 @@ public class JabberProvisioningService {
         String password = randomPassword();
         JabberProperties.Server s = primary.get();
         try {
-            callAdminApi(s, "/api/register", Map.of(
-                    "user", localpart,
-                    "host", s.domain(),
-                    "password", password));
+            registerOrRotate(s, localpart, password);
             user.setXmppPassword(password);
             userRepository.save(user);
             eventPublisher.publishEvent(new JabberEvents.UserProvisioned(user.getId()));
@@ -92,6 +91,80 @@ public class JabberProvisioningService {
                     localpart,
                     s.domain(),
                     e.toString());
+        }
+    }
+
+    /**
+     * Backfill XMPP provisioning for every Chat user whose username is
+     * JID-safe and whose {@code xmpp_password} is currently NULL. Used on
+     * startup to catch users created before V14 (the xmpp_password column)
+     * or while the Jabber feature was disabled.
+     *
+     * <p>For accounts already present in ejabberd (created out-of-band)
+     * this rotates the XMPP password to a freshly-generated one so the
+     * backend can log Smack in. Any XMPP client session still using the
+     * old password will be kicked off on its next reconnect — users see
+     * the new credentials on the Account-settings page.
+     *
+     * @return number of users successfully provisioned in this pass
+     */
+    public int backfillAllUnprovisioned() {
+        Optional<JabberProperties.Server> primary = primary();
+        if (primary.isEmpty()) return 0;
+        JabberProperties.Server s = primary.get();
+        List<User> candidates = userRepository.findAll().stream()
+                .filter(u -> u.getXmppPassword() == null)
+                .filter(u -> u.getUsername() != null && SAFE_LOCALPART.matcher(u.getUsername()).matches())
+                .toList();
+        if (candidates.isEmpty()) return 0;
+        log.info("JabberProvisioning: backfilling {} unprovisioned user(s)", candidates.size());
+        int ok = 0;
+        for (User user : candidates) {
+            String password = randomPassword();
+            try {
+                registerOrRotate(s, user.getUsername(), password);
+                user.setXmppPassword(password);
+                userRepository.save(user);
+                eventPublisher.publishEvent(new JabberEvents.UserProvisioned(user.getId()));
+                ok++;
+                // Minimal throttle to avoid hammering ejabberd on a fresh
+                // backend start; keeps startup time predictable.
+                Thread.sleep(50);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                log.warn("JabberProvisioning: backfill interrupted after {} users", ok);
+                return ok;
+            } catch (RuntimeException e) {
+                log.warn(
+                        "JabberProvisioning: backfill skipped {}: {}",
+                        user.getUsername(),
+                        e.toString());
+            }
+        }
+        log.info("JabberProvisioning: backfill complete — {}/{}", ok, candidates.size());
+        return ok;
+    }
+
+    /**
+     * Create the XMPP account or, if it already exists in ejabberd, rotate
+     * its password. Either way, after this call the given localpart is live
+     * on the server with the given password.
+     */
+    private void registerOrRotate(JabberProperties.Server s, String localpart, String password) {
+        try {
+            callAdminApi(s, "/api/register", Map.of(
+                    "user", localpart,
+                    "host", s.domain(),
+                    "password", password));
+        } catch (HttpClientErrorException.Conflict alreadyExists) {
+            log.debug(
+                    "JabberProvisioning: {}@{} exists in ejabberd; rotating password",
+                    localpart,
+                    s.domain());
+            callAdminApi(s, "/api/change_password", Map.of(
+                    "user", localpart,
+                    "host", s.domain(),
+                    "newpass", password));
         }
     }
 
