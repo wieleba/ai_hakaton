@@ -39,6 +39,8 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/api/users/register", "/api/users/login")
                     .permitAll()
+                    .requestMatchers("/api/password-reset/**")
+                    .permitAll()
                     .requestMatchers("/ws/chat/**")
                     .permitAll()
                     .anyRequest()
