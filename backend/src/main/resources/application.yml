@@ -45,6 +45,28 @@ app:
   mail-from: ${APP_MAIL_FROM:noreply@chat.local}
   oembed:
     youtube-url: ${APP_OEMBED_YOUTUBE_URL:https://www.youtube.com/oembed}
+  jabber:
+    servers:
+      -
+        label: "A"
+        domain: ${APP_JABBER_A_DOMAIN:chat-a.local}
+        client-host: ${APP_JABBER_A_CLIENT_HOST:chat-a.local}
+        client-port: ${APP_JABBER_A_CLIENT_PORT:5222}
+        s2s-host: ${APP_JABBER_A_S2S_HOST:chat-a.local}
+        s2s-port: ${APP_JABBER_A_S2S_PORT:5269}
+        http-url: ${APP_JABBER_A_HTTP_URL:http://chat-a.local:5280}
+        admin-jid: ${APP_JABBER_A_ADMIN_JID:admin@chat-a.local}
+        admin-password: ${APP_JABBER_A_ADMIN_PASSWORD:adminpass}
+      -
+        label: "B"
+        domain: ${APP_JABBER_B_DOMAIN:chat-b.local}
+        client-host: ${APP_JABBER_B_CLIENT_HOST:chat-b.local}
+        client-port: ${APP_JABBER_B_CLIENT_PORT:5222}
+        s2s-host: ${APP_JABBER_B_S2S_HOST:chat-b.local}
+        s2s-port: ${APP_JABBER_B_S2S_PORT:5269}
+        http-url: ${APP_JABBER_B_HTTP_URL:http://chat-b.local:5280}
+        admin-jid: ${APP_JABBER_B_ADMIN_JID:admin@chat-b.local}
+        admin-password: ${APP_JABBER_B_ADMIN_PASSWORD:adminpass}
 
 logging:
   level:

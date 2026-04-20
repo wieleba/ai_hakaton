@@ -54,6 +54,50 @@ services:
     networks:
       - chat-network
 
+  ## XMPP / Jabber server A — domain chat-a.local
+  ## Client port 5222, S2S 5269, HTTP API 5280. Admin: admin@chat-a.local / adminpass.
+  ## Pre-registered demo user: alice@chat-a.local / alicepass.
+  ejabberd-a:
+    image: ejabberd/ecs:24.07
+    container_name: chat-ejabberd-a
+    hostname: chat-a.local
+    environment:
+      ## First-time boot registers admin + demo user. Macros in ejabberd-a.yml
+      ## define HOST and ADMIN so we don't need EJABBERD_MACRO_* env vars.
+      CTL_ON_CREATE: "register admin chat-a.local adminpass ; register alice chat-a.local alicepass"
+    ports:
+      - "5222:5222"
+      - "5269:5269"
+      - "5280:5280"
+    volumes:
+      - ./jabber/ejabberd-a.yml:/home/ejabberd/conf/ejabberd.yml:ro
+      - ejabberd_a_data:/opt/ejabberd/database
+    networks:
+      chat-network:
+        aliases:
+          - chat-a.local
+
+  ## XMPP / Jabber server B — domain chat-b.local
+  ## Client port 5223, S2S 5270, HTTP API 5281. Admin: admin@chat-b.local / adminpass.
+  ## Pre-registered demo user: bob@chat-b.local / bobpass.
+  ejabberd-b:
+    image: ejabberd/ecs:24.07
+    container_name: chat-ejabberd-b
+    hostname: chat-b.local
+    environment:
+      CTL_ON_CREATE: "register admin chat-b.local adminpass ; register bob chat-b.local bobpass"
+    ports:
+      - "5223:5222"
+      - "5270:5269"
+      - "5281:5280"
+    volumes:
+      - ./jabber/ejabberd-b.yml:/home/ejabberd/conf/ejabberd.yml:ro
+      - ejabberd_b_data:/opt/ejabberd/database
+    networks:
+      chat-network:
+        aliases:
+          - chat-b.local
+
   backend:
     build:
       context: ./backend
@@ -110,6 +154,8 @@ volumes:
   postgres_data:
   minio_data:
   redis_data:
+  ejabberd_a_data:
+  ejabberd_b_data:
 
 networks:
   chat-network:

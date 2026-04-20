@@ -31,6 +31,9 @@ export const TopMenu: React.FC<Props> = ({ username }) => {
       <Link to="/sessions" className={linkCls('/sessions')}>
         Sessions
       </Link>
+      <Link to="/jabber" className={linkCls('/jabber')}>
+        Jabber
+      </Link>
       <div className="flex-1" />
       <ProfileMenu username={username} />
     </nav>

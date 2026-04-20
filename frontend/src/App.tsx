@@ -12,6 +12,7 @@ import { DirectMessagesPage } from './pages/DirectMessagesPage';
 import { DirectChatPage } from './pages/DirectChatPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { AccountSettingsPage } from './pages/AccountSettingsPage';
+import { JabberPage } from './pages/JabberPage';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="/dms/:conversationId" element={<DirectChatPage />} />
             <Route path="/sessions" element={<SessionsPage />} />
             <Route path="/account" element={<AccountSettingsPage />} />
+            <Route path="/jabber" element={<JabberPage />} />
             <Route path="/" element={<Navigate to="/rooms" replace />} />
           </Route>
         </Routes>
