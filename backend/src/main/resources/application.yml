@@ -39,7 +39,7 @@ spring:
       mail.smtp.starttls.enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
 
 app:
-  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
   # Production deployments MUST override APP_MAIL_FROM with a verified sender.
   # The .local TLD below is only usable against MailHog in dev.
   mail-from: ${APP_MAIL_FROM:noreply@chat.local}

@@ -38,4 +38,18 @@ public class User {
   @UpdateTimestamp
   @Column(name = "updated_at", nullable = false)
   private OffsetDateTime updatedAt;
+
+  // Bumped whenever the password is (re)set. JwtAuthenticationFilter rejects any
+  // token whose `iat` claim is older than this, invalidating every past JWT for
+  // this user regardless of transport. Set explicitly at registration and on
+  // every password-change path (change, reset); V11 migration backfills NOW()
+  // for rows that predate the column. The @PrePersist default covers direct-
+  // construction test fixtures that skip UserService.registerUser.
+  @Column(name = "password_changed_at", nullable = false)
+  private OffsetDateTime passwordChangedAt;
+
+  @PrePersist
+  void ensurePasswordChangedAt() {
+    if (passwordChangedAt == null) passwordChangedAt = OffsetDateTime.now();
+  }
 }

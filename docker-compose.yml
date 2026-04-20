@@ -74,7 +74,7 @@ services:
       SPRING_MAIL_PORT: 1025
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
       SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
-      APP_FRONTEND_BASE_URL: "http://localhost:5173"
+      APP_FRONTEND_BASE_URL: "http://localhost:3000"
       APP_MAIL_FROM: "noreply@chat.local"
     depends_on:
       postgres:

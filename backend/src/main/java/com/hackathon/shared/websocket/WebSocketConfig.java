@@ -1,5 +1,6 @@
 package com.hackathon.shared.websocket;
 
+import com.hackathon.features.users.UserRepository;
 import com.hackathon.shared.security.JwtTokenProvider;
 import com.hackathon.shared.security.TokenHashing;
 import com.hackathon.shared.security.TokenRevocationService;
@@ -29,6 +30,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
   private final SessionAttrHandshakeInterceptor handshakeInterceptor;
   private final TokenRevocationService tokenRevocationService;
   private final WsSessionMetadataRegistry metadataRegistry;
+  private final UserRepository userRepository;
 
   @Override
   public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -64,6 +66,17 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                   throw new MessageDeliveryException("Unauthorized CONNECT");
                 }
                 var userId = jwtTokenProvider.getUserIdFromToken(token);
+                // Reject JWTs issued before the user's last password change.
+                var maybeUser = userRepository.findById(userId);
+                if (maybeUser.isEmpty()) {
+                  throw new MessageDeliveryException("Unauthorized CONNECT");
+                }
+                var pwChangedAt = maybeUser.get().getPasswordChangedAt();
+                if (pwChangedAt != null
+                    && jwtTokenProvider.getIssuedAtEpochSeconds(token)
+                        < pwChangedAt.toEpochSecond()) {
+                  throw new MessageDeliveryException("Unauthorized CONNECT");
+                }
                 Principal principal =
                     new UsernamePasswordAuthenticationToken(
                         userId.toString(), null, Collections.emptyList());

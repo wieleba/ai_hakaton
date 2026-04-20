@@ -1,5 +1,6 @@
 package com.hackathon.shared.security;
 
+import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -34,7 +36,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Guard: the user row may be gone (account deletion). Leave the context
         // unauthenticated so the SecurityConfig entry point returns 401 on protected
         // routes; public routes (/register, /login) continue to work.
-        if (userRepository.existsById(userId)) {
+        Optional<User> maybeUser = userRepository.findById(userId);
+        if (maybeUser.isPresent() && tokenIssuedAfterPasswordChange(token, maybeUser.get())) {
           String username = jwtTokenProvider.getUsernameFromToken(token);
           UsernamePasswordAuthenticationToken auth =
               new UsernamePasswordAuthenticationToken(username, null, Collections.emptyList());
@@ -44,5 +47,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       }
     }
     chain.doFilter(request, response);
+  }
+
+  /**
+   * Reject tokens issued before the user's password was last (re)set. Comparison is
+   * in epoch seconds (JWT `iat` precision): a token whose `iat` is strictly less
+   * than the password-change second is rejected. Tokens issued in the same second
+   * as the password change are accepted — a 1-second race window we accept since
+   * the attacker would need to have minted a token within that exact second.
+   */
+  private boolean tokenIssuedAfterPasswordChange(String token, User user) {
+    if (user.getPasswordChangedAt() == null) return true; // legacy row: don't lock out
+    long iat = jwtTokenProvider.getIssuedAtEpochSeconds(token);
+    if (iat == 0L) return false;
+    long changedAt = user.getPasswordChangedAt().toEpochSecond();
+    return iat >= changedAt;
   }
 }

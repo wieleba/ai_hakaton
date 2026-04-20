@@ -1,5 +1,6 @@
 package com.hackathon.features.users;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,7 @@ public class UserService {
             .email(email)
             .username(username)
             .passwordHash(passwordEncoder.encode(password))
+            .passwordChangedAt(OffsetDateTime.now())
             .build();
 
     return userRepository.save(user);
@@ -72,6 +74,7 @@ public class UserService {
           "New password must be at least " + MIN_PASSWORD_LENGTH + " characters");
     }
     user.setPasswordHash(passwordEncoder.encode(newPassword));
+    user.setPasswordChangedAt(OffsetDateTime.now());
     userRepository.save(user);
   }
 

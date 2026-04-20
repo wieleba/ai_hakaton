@@ -59,4 +59,25 @@ public class JwtTokenProvider {
       return false;
     }
   }
+
+  /**
+   * Returns the JWT's `iat` claim as epoch seconds (the standard JWT precision).
+   * Used to reject tokens whose `iat` predates the user's password_changed_at.
+   * Returns 0 on any parse failure so the caller can treat that as "invalid".
+   */
+  public long getIssuedAtEpochSeconds(String token) {
+    try {
+      SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+      Date issuedAt =
+          Jwts.parser()
+              .verifyWith(key)
+              .build()
+              .parseSignedClaims(token)
+              .getPayload()
+              .getIssuedAt();
+      return issuedAt == null ? 0L : issuedAt.getTime() / 1000L;
+    } catch (Exception e) {
+      return 0L;
+    }
+  }
 }

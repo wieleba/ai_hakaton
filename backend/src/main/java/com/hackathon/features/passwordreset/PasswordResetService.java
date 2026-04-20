@@ -117,6 +117,7 @@ public class PasswordResetService {
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
     user.setPasswordHash(passwordEncoder.encode(newPassword));
+    user.setPasswordChangedAt(now);
     userRepository.save(user);
 
     // Kill any sibling unused tokens the same user may have outstanding.
