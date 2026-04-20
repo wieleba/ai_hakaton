@@ -4,6 +4,8 @@ import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.bans.UserBanRepository;
 import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipRepository;
+import com.hackathon.features.messages.embeds.DirectMessageEmbedRepository;
+import com.hackathon.features.messages.embeds.EmbedService;
 import com.hackathon.features.unread.ChatType;
 import com.hackathon.features.unread.UnreadService;
 import com.hackathon.features.users.User;
@@ -11,6 +13,7 @@ import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.AttachmentSummary;
 import com.hackathon.shared.dto.DirectMessageDTO;
 import com.hackathon.shared.dto.DirectMessageEventEnvelope;
+import com.hackathon.shared.dto.EmbedDto;
 import com.hackathon.shared.dto.MessagePreview;
 import com.hackathon.shared.storage.StorageService;
 import java.io.InputStream;
@@ -44,6 +47,8 @@ public class DirectMessageService {
   private final DirectMessageAttachmentRepository attachmentRepository;
   private final StorageService storageService;
   private final UnreadService unreadService;
+  private final EmbedService embedService;
+  private final DirectMessageEmbedRepository directMessageEmbedRepository;
 
   @Transactional
   public DirectMessage send(UUID senderId, UUID conversationId, String text, UUID replyToId) {
@@ -69,6 +74,7 @@ public class DirectMessageService {
             .text(text)
             .replyToId(replyToId)
             .build());
+    embedService.persistForDirectMessage(saved);
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
     return saved;
@@ -138,6 +144,7 @@ public class DirectMessageService {
               .storageKey(storageKey)
               .build());
     }
+    embedService.persistForDirectMessage(saved);
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
     return saved;
@@ -164,6 +171,7 @@ public class DirectMessageService {
     m.setText(newText);
     m.setEditedAt(OffsetDateTime.now());
     DirectMessage saved = directMessageRepository.save(m);
+    embedService.reconcileForDirectMessage(saved);
     DirectConversation conv = loadConversation(saved.getConversationId());
     UUID other = conversationService.otherParticipant(conv, callerId);
     publishToBoth(callerId, other, DirectMessageEventEnvelope.edited(toDto(saved)));
@@ -238,6 +246,15 @@ public class DirectMessageService {
           .map(a -> new AttachmentSummary(a.getId(), a.getFilename(), a.getMimeType(), a.getSizeBytes()))
           .orElse(null);
     }
+    List<EmbedDto> embedDtos = directMessageEmbedRepository.findByDirectMessageId(m.getId()).stream()
+        .map(e -> new EmbedDto(
+            e.getId(),
+            e.getKind(),
+            e.getCanonicalId(),
+            e.getSourceUrl(),
+            e.getTitle(),
+            e.getThumbnailUrl()))
+        .toList();
     return DirectMessageDTO.builder()
         .id(m.getId())
         .conversationId(m.getConversationId())
@@ -251,6 +268,7 @@ public class DirectMessageService {
         .replyTo(preview)
         .reactions(buildReactions(m.getId(), callerId))
         .attachment(attachmentSummary)
+        .embeds(embedDtos)
         .build();
   }
 

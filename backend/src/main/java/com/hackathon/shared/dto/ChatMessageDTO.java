@@ -25,4 +25,5 @@ public class ChatMessageDTO {
   private MessagePreview replyTo;
   private List<ReactionSummary> reactions;
   private AttachmentSummary attachment;
+  private List<EmbedDto> embeds;
 }

@@ -25,4 +25,5 @@ public class DirectMessageDTO {
   private MessagePreview replyTo;
   private List<ReactionSummary> reactions;
   private AttachmentSummary attachment;
+  private List<EmbedDto> embeds;
 }

@@ -2,6 +2,7 @@ package com.hackathon.features.messages;
 
 import com.hackathon.features.attachments.AttachmentPolicy;
 import com.hackathon.features.messages.embeds.EmbedService;
+import com.hackathon.features.messages.embeds.MessageEmbedRepository;
 import com.hackathon.features.rooms.RoomMemberService;
 import com.hackathon.features.unread.ChatType;
 import com.hackathon.features.unread.UnreadService;
@@ -9,6 +10,7 @@ import com.hackathon.features.users.User;
 import com.hackathon.features.users.UserService;
 import com.hackathon.shared.dto.AttachmentSummary;
 import com.hackathon.shared.dto.ChatMessageDTO;
+import com.hackathon.shared.dto.EmbedDto;
 import com.hackathon.shared.dto.MessageEventEnvelope;
 import com.hackathon.shared.dto.MessagePreview;
 import com.hackathon.shared.dto.ReactionSummary;
@@ -38,6 +40,7 @@ public class MessageService {
   private final StorageService storageService;
   private final UnreadService unreadService;
   private final EmbedService embedService;
+  private final MessageEmbedRepository messageEmbedRepository;
 
   @Transactional
   public Message sendMessage(UUID roomId, UUID userId, String text, UUID replyToId) {
@@ -216,6 +219,15 @@ public class MessageService {
           .map(a -> new AttachmentSummary(a.getId(), a.getFilename(), a.getMimeType(), a.getSizeBytes()))
           .orElse(null);
     }
+    List<EmbedDto> embedDtos = messageEmbedRepository.findByMessageId(m.getId()).stream()
+        .map(e -> new EmbedDto(
+            e.getId(),
+            e.getKind(),
+            e.getCanonicalId(),
+            e.getSourceUrl(),
+            e.getTitle(),
+            e.getThumbnailUrl()))
+        .toList();
     return ChatMessageDTO.builder()
         .id(m.getId())
         .roomId(m.getRoomId())
@@ -229,6 +241,7 @@ public class MessageService {
         .replyTo(preview)
         .reactions(buildReactions(m.getId(), callerId))
         .attachment(attachmentSummary)
+        .embeds(embedDtos)
         .build();
   }
 
