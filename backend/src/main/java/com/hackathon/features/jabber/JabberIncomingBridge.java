@@ -20,9 +20,11 @@ import org.jivesoftware.smack.filter.StanzaFilter;
 import org.jivesoftware.smack.filter.StanzaTypeFilter;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
-import org.jivesoftware.smack.packet.Stanza;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
+import org.jivesoftware.smackx.carbons.CarbonManager;
+import org.jivesoftware.smackx.carbons.packet.CarbonExtension;
+import org.jivesoftware.smackx.forward.packet.Forwarded;
 import org.jxmpp.jid.EntityBareJid;
 import org.jxmpp.jid.impl.JidCreate;
 import org.jxmpp.jid.parts.Resourcepart;
@@ -40,14 +42,18 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * <h3>Loop prevention</h3>
  * The receiver calls {@code receiveFromXmppBridge} which intentionally does
  * <em>not</em> publish {@code DmBridgeEvents.DmCreated}, so the outgoing relay
- * never fires for a bridged-in message.
+ * never fires for a bridged-in message. Additionally, every outbound relay's
+ * stanza carries a {@code <bridge xmlns='urn:chat:bridge:0'/>} marker; the
+ * inbound listener discards any message (direct or carbon-wrapped) that has
+ * the marker on its body.
  *
- * <h3>Multi-resource handling</h3>
+ * <h3>Multi-resource handling via XEP-0280 Message Carbons</h3>
  * The bridge connects with resource {@code chat-bridge} at priority
- * {@link #BRIDGE_PRIORITY}. Real XMPP clients like Psi+ default to priority 0;
- * by setting the bridge low, routed messages prefer the real client when the
- * user is online in both. Messages go to the bridge when no client is
- * connected, delivering them into the Chat web UI.
+ * {@link #BRIDGE_PRIORITY} (0) and enables Message Carbons after login. That
+ * way, when a user is concurrently online in the bridge and some other
+ * client (e.g. Psi+), ejabberd routes each message to one resource and
+ * carbon-copies the other — so the Chat web UI sees every inbound or sent
+ * message regardless of which resource actually won the routing race.
  */
 @Component
 @Slf4j
@@ -60,12 +66,9 @@ public class JabberIncomingBridge {
      * <em>negative</em> priority (RFC 6121 §8.1.2). So a naive "set the bridge
      * to -64 so Psi+ wins" breaks the incoming bridge entirely — the server
      * drops bridge-destined messages when no other resource is online.
-     *
-     * <p>Using 0 makes the bridge eligible for routing whether or not the
-     * user is also online in a real client. If they are, ejabberd ties broken
-     * by most-recent-resource; the Chat UI may or may not see the carbon. A
-     * proper fix for multi-resource deployments is XEP-0280 Message Carbons
-     * on the bridge connection — tracked as a follow-up, not blocking.
+     * Using 0 keeps the bridge eligible; Message Carbons (enabled after
+     * login) then make the bridge always receive a copy even when routing
+     * picks some other resource.
      */
     private static final int BRIDGE_PRIORITY = 0;
 
@@ -174,8 +177,24 @@ public class JabberIncomingBridge {
         conn.addAsyncStanzaListener(listener, chatFilter);
         conn.connect();
         conn.login();
+        enableCarbons(conn, user);
         conn.sendStanza(buildLowPriorityPresence());
         return conn;
+    }
+
+    private void enableCarbons(XMPPTCPConnection conn, User user) {
+        try {
+            CarbonManager.getInstanceFor(conn).enableCarbons();
+            log.debug("JabberIncomingBridge: carbons enabled for {}", user.getUsername());
+        } catch (Exception e) {
+            // Server doesn't support Carbons or another transient issue — degrade
+            // gracefully to the single-resource flow. The bridge still works when
+            // no other client is concurrently online for this user.
+            log.warn(
+                    "JabberIncomingBridge: failed to enable carbons for {}: {}",
+                    user.getUsername(),
+                    e.toString());
+        }
     }
 
     private Presence buildLowPriorityPresence() {
@@ -192,19 +211,44 @@ public class JabberIncomingBridge {
         }
     }
 
-    private void handleIncomingStanza(User recipient, Message msg) {
-        log.debug("JabberIncomingBridge: stanza for {} type={} from={}",
-                recipient.getUsername(), msg.getType(), msg.getFrom());
-        // Only process chat-type messages with a body. Skip typing indicators,
-        // receipts, and anything else that is not a rendered chat line.
+    private void handleIncomingStanza(User bridgeUser, Message msg) {
+        log.debug(
+                "JabberIncomingBridge: stanza for {} type={} from={}",
+                bridgeUser.getUsername(),
+                msg.getType(),
+                msg.getFrom());
+
+        // XEP-0280 Message Carbons: unwrap before applying routing rules. The
+        // outer wrapper has no body; the interesting stanza lives inside
+        // <received>/<sent><forwarded><message/>...
+        CarbonExtension carbon = CarbonExtension.from(msg);
+        if (carbon != null) {
+            Forwarded<Message> forwarded = carbon.getForwarded();
+            if (forwarded == null) return;
+            Message inner = forwarded.getForwardedStanza();
+            if (inner == null) return;
+            boolean isSent = carbon.getDirection() == CarbonExtension.Direction.sent;
+            processBody(bridgeUser, inner, isSent);
+            return;
+        }
+        // Non-carbon direct message — ejabberd routed the stanza to this
+        // bridge resource because it was the only/chosen target.
+        processBody(bridgeUser, msg, false);
+    }
+
+    /**
+     * Route a concrete message (direct or carbon-inner) into the Chat DM
+     * flow. The {@code bridgeUser} is the owner of this Smack connection —
+     * for context, logs, and a sanity check — but the routing is driven by
+     * the message's own {@code from}/{@code to}.
+     */
+    private void processBody(User bridgeUser, Message msg, boolean isSentCarbon) {
         if (msg.getType() != Message.Type.chat && msg.getType() != Message.Type.normal) return;
         String body = msg.getBody();
         if (body == null || body.isBlank()) return;
 
-        // Skip our own outgoing relay's stanzas (marked with <bridge xmlns='...'/>).
-        // Without this, every DM sent from Chat UI would be persisted twice: once
-        // by DirectMessageService.send() and again by receiveFromXmppBridge()
-        // when ejabberd delivers the relayed copy to the recipient's Smack bot.
+        // Skip our own outgoing relay's stanzas. Preserved through carbon
+        // wrapping because <bridge> sits on the body-carrying <message/>.
         if (msg.getExtensionElement(
                 JabberBridgeStanza.MARKER_ELEMENT, JabberBridgeStanza.MARKER_NAMESPACE)
                 != null) {
@@ -212,56 +256,61 @@ public class JabberIncomingBridge {
         }
 
         EntityBareJid fromJid;
+        EntityBareJid toJid;
         try {
             fromJid = msg.getFrom().asEntityBareJidOrThrow();
+            toJid = msg.getTo().asEntityBareJidOrThrow();
         } catch (Exception e) {
-            log.debug("JabberIncomingBridge: ignoring message with malformed from: {}", msg.getFrom());
+            log.debug(
+                    "JabberIncomingBridge: malformed from/to: {} / {}", msg.getFrom(), msg.getTo());
             return;
         }
-        String senderLocal = fromJid.getLocalpart().toString();
-        String senderDomain = fromJid.getDomain().toString();
 
         Optional<JabberProperties.Server> primary = provisioning.primary();
         if (primary.isEmpty()) return;
         String primaryDomain = primary.get().domain();
 
-        // Only bridge messages whose sender maps to an existing Chat user on the
-        // primary domain. Cross-domain XMPP (e.g. bob@chat-b.local who is not a
-        // Chat user) is intentionally not bridged — see feature/jabber scope
-        // B.narrow. Those messages stay in pure XMPP and are visible only in
-        // clients directly attached to the recipient's JID.
-        if (!primaryDomain.equals(senderDomain)) {
-            log.debug(
-                    "JabberIncomingBridge: dropping cross-domain message {} → {}@{}",
-                    fromJid,
-                    recipient.getUsername(),
-                    primaryDomain);
+        // Scope B.narrow: both endpoints must live on the primary domain AND
+        // both local parts must map to Chat users. Cross-domain XMPP stays in
+        // pure XMPP, not in Chat DMs.
+        if (!primaryDomain.equals(fromJid.getDomain().toString())) {
+            log.debug("JabberIncomingBridge: dropping cross-domain message from {}", fromJid);
             return;
         }
+        if (!primaryDomain.equals(toJid.getDomain().toString())) {
+            log.debug("JabberIncomingBridge: dropping cross-domain message to {}", toJid);
+            return;
+        }
+
+        String senderLocal = fromJid.getLocalpart().toString();
+        String recipLocal = toJid.getLocalpart().toString();
         Optional<User> sender = userRepository.findByUsername(senderLocal);
-        if (sender.isEmpty()) {
+        Optional<User> recip = userRepository.findByUsername(recipLocal);
+        if (sender.isEmpty() || recip.isEmpty()) {
             log.debug(
-                    "JabberIncomingBridge: sender {}@{} is not a Chat user — skipping",
+                    "JabberIncomingBridge: sender {} or recipient {} is not a Chat user — skipping",
                     senderLocal,
-                    senderDomain);
+                    recipLocal);
             return;
         }
-        if (sender.get().getId().equals(recipient.getId())) {
-            // Self-carbon — ignore.
+        if (sender.get().getId().equals(recip.get().getId())) {
+            // Self-message — not useful for the bridge.
             return;
         }
 
         try {
-            directMessageService.receiveFromXmppBridge(sender.get().getId(), recipient.getId(), body);
+            directMessageService.receiveFromXmppBridge(
+                    sender.get().getId(), recip.get().getId(), body);
             log.debug(
-                    "JabberIncomingBridge: delivered XMPP DM {} → {} into Chat",
+                    "JabberIncomingBridge: delivered XMPP DM {} → {} into Chat{}",
                     sender.get().getUsername(),
-                    recipient.getUsername());
+                    recip.get().getUsername(),
+                    isSentCarbon ? " (via SENT carbon)" : "");
         } catch (RuntimeException e) {
             log.warn(
                     "JabberIncomingBridge: failed to persist bridged DM {} → {}: {}",
                     sender.get().getUsername(),
-                    recipient.getUsername(),
+                    recip.get().getUsername(),
                     e.toString());
         }
     }

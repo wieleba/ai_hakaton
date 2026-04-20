@@ -53,6 +53,9 @@ dependencies {
     implementation 'org.igniterealtime.smack:smack-tcp:4.4.8'
     implementation 'org.igniterealtime.smack:smack-im:4.4.8'
     implementation 'org.igniterealtime.smack:smack-extensions:4.4.8'
+    // Message Carbons (XEP-0280) ship in smack-experimental, not -extensions,
+    // because they predate the XEP being finalised. The protocol is stable.
+    implementation 'org.igniterealtime.smack:smack-experimental:4.4.8'
 
     // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
