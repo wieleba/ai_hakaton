@@ -52,7 +52,7 @@ clears the inbox.
 Unit & integration:
 
 ```bash
-cd backend && ./mvnw test
+cd backend && ./gradlew test
 cd frontend && npm test
 ```
 
