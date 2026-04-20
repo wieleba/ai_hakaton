@@ -161,14 +161,18 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Plan: `docs/superpowers/plans/2026-04-19-account-management.md` (9 tasks — all complete)
 - **Status: COMPLETE**
 
-### Feature #9: Password Reset (split out of #8)
-- Forgot-password request by email → time-limited reset token
-- Email delivery (SMTP / local dev mailhog fallback)
-- Reset page that consumes the token + sets a new password
-- Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
-- Task 1 (mail infrastructure: spring-boot-starter-mail, MailHog docker service, NoopMailSender test-profile bean) landed
-- Task 2 (backend: V10 migration, token entity/repository, email builder, service with 2-minute cooldown + session revocation on confirm, controller, SecurityConfig permits `/api/password-reset/**`, 13 new tests) landed
-- **Status: IN PROGRESS** (Tasks 1–2/3 complete — backend endpoints live; Task 3 adds frontend pages)
+### Feature #9: Password Reset (split out of #8) ✅
+- Forgot-password request by email → time-limited reset token (`POST /api/password-reset/request`)
+- Email delivery via SMTP, MailHog in dev/docker; `NoopMailSender` test-profile bean keeps tests hermetic
+- Reset page that consumes the token + sets a new password (`POST /api/password-reset/confirm`) + revokes all sessions
+- Enumeration-safe request endpoint (always 204) with 2-minute per-email cooldown; tokens SHA-256-hashed at rest, 30-minute TTL, single-use
+- Frontend: public `/forgot-password` + `/reset-password` pages, "Forgot password?" link on `/login`, green success banner after a completed reset
+- Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem
+- Task 1 (mail infrastructure: spring-boot-starter-mail, MailHog docker service, NoopMailSender test-profile bean)
+- Task 2 (backend: V10 migration, token entity/repository, email builder, service with 2-minute cooldown + session revocation on confirm, controller, SecurityConfig permits `/api/password-reset/**`, 13 new tests)
+- Task 3 (frontend: `passwordResetService`, `ForgotPasswordPage`, `ResetPasswordPage`, LoginPage link + success banner, 5 new Vitest cases)
+- Completed 2026-04-20
+- **Status: COMPLETE**
 
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
@@ -187,6 +191,6 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - **Target:** up to 300 simultaneously connected users
 
 ## Progress
-- **Completed:** 11 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management) + polish (emoji picker + reactions, chat ordering)
-- **In progress:** 1 (Password Reset — Tasks 1–2/3 landed: mail infra + backend endpoints)
-- **Remaining:** 2 (Password Reset Task 3, Server-side Embed Metadata)
+- **Completed:** 12 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management, Password Reset) + polish (emoji picker + reactions, chat ordering)
+- **In progress:** 0
+- **Remaining:** 1 (Server-side Embed Metadata)
