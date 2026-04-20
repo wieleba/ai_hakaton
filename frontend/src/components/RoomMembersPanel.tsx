@@ -8,6 +8,8 @@ import { InviteUserModal } from './InviteUserModal';
 import { ManageRoomModal } from './ManageRoomModal';
 import { useRoomAdminActions } from '../hooks/useRoomAdminActions';
 import { usePresence } from '../hooks/usePresence';
+import { dotFor } from '../utils/presenceDot';
+import type { PresenceState } from '../types/presence';
 
 interface Props {
   roomId: string;
@@ -71,39 +73,44 @@ export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => 
     else offline.push(m);
   }
 
-  const renderGroup = (title: string, dot: string, list: RoomMemberView[]) => (
-    <div>
-      <div className="text-xs font-semibold text-gray-500 uppercase mt-3 mb-1">
-        {title} ({list.length})
-      </div>
-      <ul className="space-y-1">
-        {list.map((m) => {
-          const isMe = m.userId === currentUserId;
-          const isFriend = friendIds.has(m.userId);
-          return (
-            <li key={m.userId} className="flex justify-between items-center text-sm">
-              <span className="flex items-center gap-1 truncate">
-                <span className="text-gray-400">{dot}</span>
-                <span className="truncate">
-                  {m.username}
-                  {isMe && ' (you)'}
+  const renderGroup = (title: string, state: PresenceState, list: RoomMemberView[]) => {
+    const { symbol, className, label } = dotFor(state);
+    return (
+      <div>
+        <div className="text-xs font-semibold text-gray-500 uppercase mt-3 mb-1">
+          {title} ({list.length})
+        </div>
+        <ul className="space-y-1">
+          {list.map((m) => {
+            const isMe = m.userId === currentUserId;
+            const isFriend = friendIds.has(m.userId);
+            return (
+              <li key={m.userId} className="flex justify-between items-center text-sm">
+                <span className="flex items-center gap-1 truncate">
+                  <span className={className} aria-label={label}>
+                    {symbol}
+                  </span>
+                  <span className="truncate">
+                    {m.username}
+                    {isMe && ' (you)'}
+                  </span>
+                  {roleBadge(m)}
                 </span>
-                {roleBadge(m)}
-              </span>
-              {!isMe && !isFriend && (
-                <button
-                  onClick={() => sendRequest(m.username, m.userId)}
-                  className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
-                >
-                  Add friend
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
+                {!isMe && !isFriend && (
+                  <button
+                    onClick={() => sendRequest(m.username, m.userId)}
+                    className="text-xs px-2 py-1 border rounded hover:bg-blue-50"
+                  >
+                    Add friend
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
 
   return (
     <aside className="w-72 border-l bg-white p-4 overflow-y-auto">
@@ -122,9 +129,9 @@ export const RoomMembersPanel: React.FC<Props> = ({ roomId, currentUserId }) => 
         )}
       </div>
 
-      {renderGroup('Online', '●', online)}
-      {renderGroup('AFK', '◐', afk)}
-      {renderGroup('Offline', '○', offline)}
+      {renderGroup('Online', 'ONLINE', online)}
+      {renderGroup('AFK', 'AFK', afk)}
+      {renderGroup('Offline', 'OFFLINE', offline)}
 
       {isAdmin && (
         <div className="mt-4 pt-4 border-t space-y-2">
