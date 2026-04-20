@@ -10,6 +10,7 @@ import com.hackathon.shared.security.TokenHashing;
 import com.hackathon.shared.security.TokenRevocationService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import org.springframework.mail.MailException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -46,7 +47,12 @@ public class PasswordResetService {
   private final SimpMessagingTemplate messagingTemplate;
   private final SecureRandom secureRandom = new SecureRandom();
 
-  @Transactional
+  // Deliberately NOT @Transactional: mailSender.send() does a blocking SMTP round-trip.
+  // Wrapping the whole method would hold a DB connection open for the full SMTP timeout
+  // (often many seconds with a real provider), starving the pool under any load. Each
+  // JpaRepository call opens + commits its own short transaction, which is fine here —
+  // the cooldown check + insert don't need to be atomic (two concurrent inserts would
+  // both be caught by the 2-minute window on the *next* request, not this one).
   public void requestReset(String email) {
     Optional<User> maybe = userRepository.findByEmail(email);
     if (maybe.isEmpty()) return; // enumeration protection
@@ -68,10 +74,14 @@ public class PasswordResetService {
             .build();
     tokenRepository.save(row);
 
+    // Token is committed; now send mail outside any transaction. Catch both the
+    // checked MessagingException and Spring's runtime MailException so a transport
+    // blow-up doesn't leak as a 500 — the user already sees "check your inbox"
+    // regardless of send outcome.
     try {
       MimeMessage msg = emailBuilder.build(user.getEmail(), rawToken);
       mailSender.send(msg);
-    } catch (MessagingException e) {
+    } catch (MessagingException | MailException e) {
       log.error("Failed to send password reset mail to {}", user.getEmail(), e);
     }
   }
