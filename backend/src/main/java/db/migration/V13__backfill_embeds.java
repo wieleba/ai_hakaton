@@ -26,8 +26,24 @@ import org.springframework.web.client.RestClient;
 public class V13__backfill_embeds extends BaseJavaMigration {
 
     private static final Logger log = LoggerFactory.getLogger(V13__backfill_embeds.class);
-    // Spring property (system property) takes priority — tests inject the mock server URL this way.
-    // Env var APP_OEMBED_YOUTUBE_URL is the production override path.
+    /**
+     * Resolves the oEmbed endpoint for this migration.
+     *
+     * <p><b>Warning:</b> This bypasses Spring's {@code Environment}. An
+     * {@code app.oembed.youtube-url} property set in {@code application.yml}
+     * is <b>not</b> read here — the runtime {@code YouTubeOEmbedClient} uses
+     * {@code @Value("${app.oembed.youtube-url}")} but this method can only
+     * see:
+     * <ol>
+     *   <li>JVM system property (tests inject via {@code @DynamicPropertySource} + {@code System.setProperty})</li>
+     *   <li>{@code APP_OEMBED_YOUTUBE_URL} environment variable (production override path)</li>
+     *   <li>Hardcoded default {@code https://www.youtube.com/oembed}</li>
+     * </ol>
+     *
+     * <p>If an operator wants to override the endpoint in production, they
+     * MUST set {@code APP_OEMBED_YOUTUBE_URL} as an env var, not just the
+     * Spring property.
+     */
     private static String resolveOEmbedUrl() {
         String sysProp = System.getProperty("app.oembed.youtube-url");
         if (sysProp != null && !sysProp.isBlank()) return sysProp;
