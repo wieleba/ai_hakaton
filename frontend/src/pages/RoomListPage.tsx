@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { ChatRoom } from '../types/room';
 import { roomService } from '../services/roomService';
 import { RoomCreateModal } from '../components/RoomCreateModal';
+import { RoomInvitationList } from '../components/RoomInvitationList';
+import { useRoomInvitations } from '../hooks/useRoomInvitations';
 import { useNavigate } from 'react-router-dom';
 
 export const RoomListPage: React.FC = () => {
@@ -9,6 +11,17 @@ export const RoomListPage: React.FC = () => {
   const [publicRooms, setPublicRooms] = useState<ChatRoom[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const {
+    invitations,
+    accept: acceptInvite,
+    decline: declineInvite,
+  } = useRoomInvitations();
+
+  const handleAcceptInvitation = async (id: string) => {
+    const inv = invitations.find((i) => i.id === id);
+    await acceptInvite(id);
+    if (inv) navigate(`/rooms/${inv.roomId}`);
+  };
 
   const reload = async () => {
     try {
@@ -71,6 +84,12 @@ export const RoomListPage: React.FC = () => {
         </div>
 
         {error && <div className="text-red-500 mb-4">{error}</div>}
+
+        <RoomInvitationList
+          invitations={invitations}
+          onAccept={handleAcceptInvitation}
+          onDecline={declineInvite}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {publicRooms.map(renderRoomCard)}
