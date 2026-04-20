@@ -65,6 +65,10 @@ test.describe('Room moderation', () => {
     await ownerPage.click('button:has-text("Invite user")');
     await ownerPage.fill('input[placeholder="Username"]', bob.username);
     await ownerPage.click('button:has-text("Send invitation")');
+    // Modal closes on successful invite — wait before tearing down the context.
+    await expect(ownerPage.getByRole('heading', { name: 'Invite user to this room' })).toBeHidden({
+      timeout: 10_000,
+    });
 
     await ownerCtx.close();
 

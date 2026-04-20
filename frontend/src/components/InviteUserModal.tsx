@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearch } from '../hooks/useSearch';
 
 interface Props {
   isOpen: boolean;
@@ -10,6 +11,8 @@ export const InviteUserModal: React.FC<Props> = ({ isOpen, onClose, onInvite }) 
   const [username, setUsername] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
+  const { results, isLoading } = useSearch(username);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,19 +31,53 @@ export const InviteUserModal: React.FC<Props> = ({ isOpen, onClose, onInvite }) 
     }
   };
 
+  const pick = (pickedUsername: string) => {
+    setUsername(pickedUsername);
+    setFocused(false);
+  };
+
   if (!isOpen) return null;
+  const showSuggestions =
+    focused && username.trim().length > 0 && (isLoading || results.users.length > 0);
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-96">
         <h2 className="text-xl font-bold mb-4">Invite user to this room</h2>
         <form onSubmit={submit}>
-          <input
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            placeholder="Username"
-            disabled={busy}
-            className="w-full border rounded px-3 py-2 mb-4"
-          />
+          <div className="mb-4">
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+              placeholder="Username"
+              disabled={busy}
+              autoComplete="off"
+              className="w-full border rounded px-3 py-2"
+            />
+            {showSuggestions && (
+              <div className="mt-1 border rounded max-h-40 overflow-y-auto bg-gray-50">
+                {isLoading && (
+                  <div className="px-3 py-2 text-xs text-gray-400">Searching…</div>
+                )}
+                {!isLoading && results.users.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-gray-400">No matches</div>
+                )}
+                {results.users.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => pick(u.username)}
+                    className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                  >
+                    {u.username}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
           <div className="flex gap-2 justify-end">
             <button
