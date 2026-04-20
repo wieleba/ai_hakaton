@@ -106,6 +106,7 @@ export const DirectChatPage: React.FC = () => {
     replyTo: m.replyTo,
     reactions: m.reactions,
     attachment: m.attachment,
+    embeds: m.embeds,
   }));
 
   const replyPreview = replyTarget && {

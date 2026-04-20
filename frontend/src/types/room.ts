@@ -1,5 +1,14 @@
 import type { AttachmentSummary } from './attachment';
 
+export interface Embed {
+  id: string;
+  kind: 'youtube' | string;
+  canonicalId: string;
+  sourceUrl: string;
+  title: string | null;
+  thumbnailUrl: string | null;
+}
+
 export interface User {
   id: string;
   username: string;
@@ -41,6 +50,7 @@ export interface Message {
   replyTo?: MessagePreview | null;
   reactions?: ReactionSummary[];
   attachment?: AttachmentSummary | null;
+  embeds: Embed[];
 }
 
 export interface RoomMember {

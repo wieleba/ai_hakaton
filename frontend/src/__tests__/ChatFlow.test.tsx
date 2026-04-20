@@ -26,6 +26,7 @@ const makeMessage = (id: string, text: string, offset = 0): Message => ({
   username: 'testuser',
   text,
   createdAt: new Date(Date.now() - offset * 1000).toISOString(),
+  embeds: [],
 });
 
 describe('ChatFlow Integration Tests', () => {

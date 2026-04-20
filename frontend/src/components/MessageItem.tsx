@@ -5,7 +5,6 @@ import { InlineMessageEditor } from './InlineMessageEditor';
 import { ReactionsBar } from './ReactionsBar';
 import { AttachmentRenderer } from './AttachmentRenderer';
 import { YouTubeEmbed } from './YouTubeEmbed';
-import { extractYouTubeIds } from '../utils/youtube';
 
 interface Props {
   message: Message;
@@ -82,9 +81,7 @@ export const MessageItem: React.FC<Props> = ({ message, currentUserId, onReply, 
             {message.text && (
               <p className="text-gray-700 mt-1 whitespace-pre-wrap dark:text-discord-text">{message.text}</p>
             )}
-            {extractYouTubeIds(message.text).map((id) => (
-              <YouTubeEmbed key={id} videoId={id} />
-            ))}
+            <YouTubeEmbed text={message.text} embeds={message.embeds} />
             {message.attachment && <AttachmentRenderer attachment={message.attachment} />}
           </>
         )}

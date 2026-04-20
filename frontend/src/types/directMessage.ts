@@ -1,5 +1,5 @@
 import type { Friendship } from './friendship';
-import type { MessagePreview, ReactionSummary } from './room';
+import type { Embed, MessagePreview, ReactionSummary } from './room';
 import type { AttachmentSummary } from './attachment';
 
 export interface DirectConversation {
@@ -30,6 +30,7 @@ export interface DirectMessage {
   replyTo?: MessagePreview | null;
   reactions?: ReactionSummary[];
   attachment?: AttachmentSummary | null;
+  embeds: Embed[];
 }
 
 export type FriendEvent =
