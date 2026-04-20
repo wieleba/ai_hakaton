@@ -1,7 +1,7 @@
 package com.hackathon.features.messages.embeds;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -21,9 +21,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class EmbedServiceTest {
 
-    @Mock MessageEmbedRepository messageEmbedRepo;
-    @Mock DirectMessageEmbedRepository dmEmbedRepo;
     @Mock YouTubeOEmbedClient oEmbedClient;
+    @Mock EmbedWriter writer;
     @InjectMocks EmbedService embedService;
 
     private Message msgWith(String text) {
@@ -39,7 +38,7 @@ class EmbedServiceTest {
     @Test
     void persistForMessage_noYouTubeLinks_doesNothing() {
         embedService.persistForMessage(msgWith("hello world"));
-        verifyNoInteractions(oEmbedClient, messageEmbedRepo);
+        verifyNoInteractions(oEmbedClient, writer);
     }
 
     @Test
@@ -51,10 +50,11 @@ class EmbedServiceTest {
 
         embedService.persistForMessage(m);
 
-        ArgumentCaptor<MessageEmbed> captor = ArgumentCaptor.forClass(MessageEmbed.class);
-        verify(messageEmbedRepo, times(2)).save(captor.capture());
-        List<MessageEmbed> saved = captor.getAllValues();
-        org.assertj.core.api.Assertions.assertThat(saved)
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MessageEmbed>> captor = ArgumentCaptor.forClass(List.class);
+        verify(writer).persistMessageEmbeds(eq(m.getId()), captor.capture());
+        List<MessageEmbed> rows = captor.getValue();
+        org.assertj.core.api.Assertions.assertThat(rows)
                 .extracting(MessageEmbed::getCanonicalId, MessageEmbed::getTitle, MessageEmbed::getThumbnailUrl)
                 .containsExactly(
                         org.assertj.core.groups.Tuple.tuple("AAAAAAAAAAA", "T1", "http://img/1"),
@@ -68,10 +68,13 @@ class EmbedServiceTest {
 
         embedService.persistForMessage(m);
 
-        ArgumentCaptor<MessageEmbed> captor = ArgumentCaptor.forClass(MessageEmbed.class);
-        verify(messageEmbedRepo).save(captor.capture());
-        org.assertj.core.api.Assertions.assertThat(captor.getValue().getTitle()).isNull();
-        org.assertj.core.api.Assertions.assertThat(captor.getValue().getThumbnailUrl()).isNull();
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MessageEmbed>> captor = ArgumentCaptor.forClass(List.class);
+        verify(writer).persistMessageEmbeds(eq(m.getId()), captor.capture());
+        List<MessageEmbed> rows = captor.getValue();
+        org.assertj.core.api.Assertions.assertThat(rows).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(rows.get(0).getTitle()).isNull();
+        org.assertj.core.api.Assertions.assertThat(rows.get(0).getThumbnailUrl()).isNull();
     }
 
     @Test
@@ -81,16 +84,28 @@ class EmbedServiceTest {
 
         embedService.reconcileForMessage(m);
 
-        verify(messageEmbedRepo).deleteByMessageIdAndCanonicalIdNotIn(
-                m.getId(), List.of("CCCCCCCCCCC"));
-        verify(messageEmbedRepo).save(any(MessageEmbed.class));
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MessageEmbed>> rowsCaptor = ArgumentCaptor.forClass(List.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<String>> keepCaptor = ArgumentCaptor.forClass(List.class);
+        verify(writer).reconcileMessageEmbeds(eq(m.getId()), rowsCaptor.capture(), keepCaptor.capture());
+        org.assertj.core.api.Assertions.assertThat(keepCaptor.getValue()).containsExactly("CCCCCCCCCCC");
+        org.assertj.core.api.Assertions.assertThat(rowsCaptor.getValue()).hasSize(1);
     }
 
     @Test
     void reconcileForMessage_noLinksLeft_deletesEverything() {
         Message m = msgWith("plain edit no urls");
+
         embedService.reconcileForMessage(m);
-        verify(messageEmbedRepo).deleteByMessageId(m.getId());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<MessageEmbed>> rowsCaptor = ArgumentCaptor.forClass(List.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<String>> keepCaptor = ArgumentCaptor.forClass(List.class);
+        verify(writer).reconcileMessageEmbeds(eq(m.getId()), rowsCaptor.capture(), keepCaptor.capture());
+        org.assertj.core.api.Assertions.assertThat(rowsCaptor.getValue()).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(keepCaptor.getValue()).isEmpty();
         verifyNoInteractions(oEmbedClient);
     }
 }

@@ -77,14 +77,23 @@ class EmbedFlowIntegrationTest {
                         .content(body))
                 .andExpect(status().isOk());
 
-        MvcResult res = mvc.perform(get("/api/rooms/" + room.getId() + "/messages")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andReturn();
-        JsonNode msgs = objectMapper.readTree(res.getResponse().getContentAsString());
-        assertThat(msgs.isArray()).isTrue();
-        assertThat(msgs.size()).isEqualTo(1);
-        JsonNode embeds = msgs.get(0).get("embeds");
+        // The AFTER_COMMIT event listener runs asynchronously relative to the HTTP response;
+        // poll the GET endpoint until the embed row appears (up to 3 seconds).
+        JsonNode embeds = null;
+        long deadline = System.currentTimeMillis() + 3_000;
+        while (System.currentTimeMillis() < deadline) {
+            MvcResult res = mvc.perform(get("/api/rooms/" + room.getId() + "/messages")
+                            .header("Authorization", "Bearer " + token))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            JsonNode msgs = objectMapper.readTree(res.getResponse().getContentAsString());
+            assertThat(msgs.isArray()).isTrue();
+            assertThat(msgs.size()).isEqualTo(1);
+            embeds = msgs.get(0).get("embeds");
+            if (embeds != null && embeds.size() > 0) break;
+            Thread.sleep(100);
+        }
+
         assertThat(embeds).isNotNull();
         assertThat(embeds.size()).isEqualTo(1);
         assertThat(embeds.get(0).get("kind").asText()).isEqualTo("youtube");

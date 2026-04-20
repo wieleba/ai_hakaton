@@ -9,7 +9,6 @@ import com.hackathon.features.messages.MessageAttachmentRepository;
 import com.hackathon.features.messages.MessageReactionRepository;
 import com.hackathon.features.messages.MessageRepository;
 import com.hackathon.features.messages.MessageService;
-import com.hackathon.features.messages.embeds.EmbedService;
 import com.hackathon.features.messages.embeds.MessageEmbedRepository;
 import com.hackathon.shared.storage.StorageService;
 import com.hackathon.features.rooms.ChatRoom;
@@ -31,6 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -54,7 +54,7 @@ class ChatFlowIntegrationTest {
     @Mock private SimpMessagingTemplate messagingTemplate;
     @Mock private StorageService storageService;
     @Mock private UnreadService unreadService;
-    @Mock private EmbedService embedService;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private MessageEmbedRepository messageEmbedRepository;
     @Mock private com.hackathon.features.unread.ChatReadMarkerRepository chatReadMarkerRepository;
 
@@ -71,7 +71,7 @@ class ChatFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         chatRoomService = new ChatRoomService(chatRoomRepository, roomMemberService, userService, roomBanRepository, chatReadMarkerRepository);
-        messageService = new MessageService(messageRepository, messageReactionRepository, messageAttachmentRepository, roomMemberService, userService, messagingTemplate, storageService, unreadService, embedService, messageEmbedRepository);
+        messageService = new MessageService(messageRepository, messageReactionRepository, messageAttachmentRepository, roomMemberService, userService, messagingTemplate, storageService, unreadService, eventPublisher, messageEmbedRepository);
 
         ownerId = UUID.randomUUID();
         memberId = UUID.randomUUID();

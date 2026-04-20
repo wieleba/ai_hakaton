@@ -1,7 +1,7 @@
 package com.hackathon.features.messages;
 
 import com.hackathon.features.attachments.AttachmentPolicy;
-import com.hackathon.features.messages.embeds.EmbedService;
+import com.hackathon.features.messages.embeds.MessageEmbedEvents;
 import com.hackathon.features.messages.embeds.MessageEmbedRepository;
 import com.hackathon.features.rooms.RoomMemberService;
 import com.hackathon.features.unread.ChatType;
@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -39,7 +40,7 @@ public class MessageService {
   private final SimpMessagingTemplate messagingTemplate;
   private final StorageService storageService;
   private final UnreadService unreadService;
-  private final EmbedService embedService;
+  private final ApplicationEventPublisher eventPublisher;
   private final MessageEmbedRepository messageEmbedRepository;
 
   @Transactional
@@ -62,7 +63,7 @@ public class MessageService {
             .text(text)
             .replyToId(replyToId)
             .build());
-    embedService.persistForMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.MessageCreated(saved));
     publish(MessageEventEnvelope.created(toDto(saved)));
     unreadService.notifyBump(ChatType.ROOM, roomId, roomMemberService.getMembers(roomId), userId);
     return saved;
@@ -131,7 +132,7 @@ public class MessageService {
               .build());
     }
 
-    embedService.persistForMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.MessageCreated(saved));
     publish(MessageEventEnvelope.created(toDto(saved)));
     unreadService.notifyBump(ChatType.ROOM, roomId, roomMemberService.getMembers(roomId), userId);
     return saved;
@@ -151,7 +152,7 @@ public class MessageService {
     m.setText(newText);
     m.setEditedAt(OffsetDateTime.now());
     Message saved = messageRepository.save(m);
-    embedService.reconcileForMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.MessageEdited(saved));
     publish(MessageEventEnvelope.edited(toDto(saved)));
     return saved;
   }

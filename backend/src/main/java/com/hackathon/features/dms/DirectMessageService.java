@@ -5,7 +5,7 @@ import com.hackathon.features.bans.UserBanRepository;
 import com.hackathon.features.friendships.Friendship;
 import com.hackathon.features.friendships.FriendshipRepository;
 import com.hackathon.features.messages.embeds.DirectMessageEmbedRepository;
-import com.hackathon.features.messages.embeds.EmbedService;
+import com.hackathon.features.messages.embeds.MessageEmbedEvents;
 import com.hackathon.features.unread.ChatType;
 import com.hackathon.features.unread.UnreadService;
 import com.hackathon.features.users.User;
@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
@@ -47,7 +48,7 @@ public class DirectMessageService {
   private final DirectMessageAttachmentRepository attachmentRepository;
   private final StorageService storageService;
   private final UnreadService unreadService;
-  private final EmbedService embedService;
+  private final ApplicationEventPublisher eventPublisher;
   private final DirectMessageEmbedRepository directMessageEmbedRepository;
 
   @Transactional
@@ -74,7 +75,7 @@ public class DirectMessageService {
             .text(text)
             .replyToId(replyToId)
             .build());
-    embedService.persistForDirectMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageCreated(saved));
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
     return saved;
@@ -144,7 +145,7 @@ public class DirectMessageService {
               .storageKey(storageKey)
               .build());
     }
-    embedService.persistForDirectMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageCreated(saved));
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
     return saved;
@@ -171,7 +172,7 @@ public class DirectMessageService {
     m.setText(newText);
     m.setEditedAt(OffsetDateTime.now());
     DirectMessage saved = directMessageRepository.save(m);
-    embedService.reconcileForDirectMessage(saved);
+    eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageEdited(saved));
     DirectConversation conv = loadConversation(saved.getConversationId());
     UUID other = conversationService.otherParticipant(conv, callerId);
     publishToBoth(callerId, other, DirectMessageEventEnvelope.edited(toDto(saved)));
