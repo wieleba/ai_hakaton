@@ -166,7 +166,8 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 - Email delivery (SMTP / local dev mailhog fallback)
 - Reset page that consumes the token + sets a new password
 - Split out of Feature #8 because the email/SMTP infrastructure is a full subsystem; not in scope for the hackathon deadline
-- **Status: TODO**
+- Task 1 (mail infrastructure: spring-boot-starter-mail, MailHog docker service, NoopMailSender test-profile bean) landed
+- **Status: IN PROGRESS** (Task 1/3 complete — infrastructure ready; Task 2 adds backend endpoints, Task 3 adds frontend pages)
 
 ### Feature #11: Server-side embed metadata (split out of #10)
 - Parse embed URLs (YouTube, future: Twitter/X, Spotify, generic OG) on send
@@ -186,5 +187,5 @@ Combined scope per 2026-04-18 brainstorming (friends + DMs + user-to-user ban + 
 
 ## Progress
 - **Completed:** 11 execution slots (Features #1, #2, #3, #4, App Shell Refactor, Message Content, Account Management, Attachments, YouTube Embeds, Presence, Sessions Management) + polish (emoji picker + reactions, chat ordering)
-- **In progress:** 0
-- **Remaining:** 2 (Password Reset, Server-side Embed Metadata)
+- **In progress:** 1 (Password Reset — Task 1/3 landed: mail infra)
+- **Remaining:** 2 (Password Reset Tasks 2–3, Server-side Embed Metadata)

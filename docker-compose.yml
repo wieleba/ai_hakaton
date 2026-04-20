@@ -45,6 +45,15 @@ services:
     networks:
       - chat-network
 
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: chat-mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - chat-network
+
   backend:
     build:
       context: ./backend
@@ -61,9 +70,17 @@ services:
       STORAGE_S3_SECRET_KEY: minioadmin
       STORAGE_S3_BUCKET: chat-attachments
       SPRING_DATA_REDIS_HOST: redis
+      SPRING_MAIL_HOST: mailhog
+      SPRING_MAIL_PORT: 1025
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "false"
+      SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "false"
+      APP_FRONTEND_BASE_URL: "http://localhost:5173"
+      APP_MAIL_FROM: "noreply@chat.local"
     depends_on:
       postgres:
         condition: service_healthy
+      mailhog:
+        condition: service_started
     networks:
       - chat-network
     volumes:

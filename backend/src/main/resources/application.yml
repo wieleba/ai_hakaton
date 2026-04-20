@@ -31,6 +31,16 @@ spring:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}
       port: 6379
+  mail:
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    properties:
+      mail.smtp.auth: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE:false}
+
+app:
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:5173}
+  mail-from: ${APP_MAIL_FROM:noreply@chat.local}
 
 logging:
   level:
