@@ -87,16 +87,19 @@ public class PasswordResetService {
     }
 
     String hash = TokenHashing.sha256Hex(rawToken);
+    OffsetDateTime now = OffsetDateTime.now();
+
+    // Atomic claim — closes the double-spend race. Returns 1 only if the row
+    // existed and was both unused and unexpired at write time.
+    int claimed = tokenRepository.markUsedIfActive(hash, now);
+    if (claimed != 1) {
+      throw new IllegalArgumentException("Invalid or expired token");
+    }
+
     PasswordResetToken token =
         tokenRepository
             .findByTokenHash(hash)
             .orElseThrow(() -> new IllegalArgumentException("Invalid or expired token"));
-    if (token.getUsedAt() != null) {
-      throw new IllegalArgumentException("Invalid or expired token");
-    }
-    if (token.getExpiresAt().isBefore(OffsetDateTime.now())) {
-      throw new IllegalArgumentException("Invalid or expired token");
-    }
 
     User user =
         userRepository
@@ -106,8 +109,8 @@ public class PasswordResetService {
     user.setPasswordHash(passwordEncoder.encode(newPassword));
     userRepository.save(user);
 
-    token.setUsedAt(OffsetDateTime.now());
-    tokenRepository.save(token);
+    // Kill any sibling unused tokens the same user may have outstanding.
+    tokenRepository.invalidateOtherUnusedForUser(user.getId(), hash, now);
 
     List<SessionView> sessions = presenceService.listSessions(user.getId());
     for (SessionView s : sessions) {

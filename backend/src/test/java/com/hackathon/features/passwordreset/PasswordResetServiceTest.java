@@ -168,6 +168,49 @@ class PasswordResetServiceTest {
         .isInstanceOf(IllegalArgumentException.class);
   }
 
+  @Test
+  void confirmReplayOfSameTokenThrows() {
+    User u = saveUser("race-" + System.nanoTime(), "oldpass123");
+    String raw = "race-token-" + System.nanoTime();
+    PasswordResetToken t =
+        PasswordResetToken.builder()
+            .tokenHash(TokenHashing.sha256Hex(raw))
+            .userId(u.getId())
+            .expiresAt(OffsetDateTime.now().plusMinutes(5))
+            .build();
+    tokenRepository.save(t);
+
+    service.confirmReset(raw, "newpass123");
+
+    assertThatThrownBy(() -> service.confirmReset(raw, "evenNewer1"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void confirmSuccessInvalidatesOtherUnusedTokensForUser() {
+    User u = saveUser("multi-" + System.nanoTime(), "oldpass123");
+    String rawA = "token-a-" + System.nanoTime();
+    String rawB = "token-b-" + System.nanoTime();
+    tokenRepository.save(
+        PasswordResetToken.builder()
+            .tokenHash(TokenHashing.sha256Hex(rawA))
+            .userId(u.getId())
+            .expiresAt(OffsetDateTime.now().plusMinutes(5))
+            .build());
+    tokenRepository.save(
+        PasswordResetToken.builder()
+            .tokenHash(TokenHashing.sha256Hex(rawB))
+            .userId(u.getId())
+            .expiresAt(OffsetDateTime.now().plusMinutes(5))
+            .build());
+
+    service.confirmReset(rawA, "newpass123");
+
+    // B should be invalidated — a stolen copy can't be used anymore.
+    assertThatThrownBy(() -> service.confirmReset(rawB, "anotherpass1"))
+        .isInstanceOf(IllegalArgumentException.class);
+  }
+
   /** Reads the reset link from the captured MimeMessage's text and extracts the token query param. */
   private String extractTokenFromSubject(MimeMessage msg) {
     try {
