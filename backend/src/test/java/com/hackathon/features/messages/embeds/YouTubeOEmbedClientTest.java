@@ -10,8 +10,8 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.web.client.ClientHttpRequestFactories;
-import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
+import org.springframework.boot.http.client.ClientHttpRequestFactoryBuilder;
+import org.springframework.boot.http.client.ClientHttpRequestFactorySettings;
 import org.springframework.web.client.RestClient;
 
 class YouTubeOEmbedClientTest {
@@ -23,11 +23,11 @@ class YouTubeOEmbedClientTest {
     void setUp() throws IOException {
         server = new MockWebServer();
         server.start();
-        var settings = ClientHttpRequestFactorySettings.DEFAULTS
+        var settings = ClientHttpRequestFactorySettings.defaults()
                 .withConnectTimeout(Duration.ofMillis(500))
                 .withReadTimeout(Duration.ofMillis(500));
         RestClient rc = RestClient.builder()
-                .requestFactory(ClientHttpRequestFactories.get(settings))
+                .requestFactory(ClientHttpRequestFactoryBuilder.detect().build(settings))
                 .build();
         client = new YouTubeOEmbedClient(rc, server.url("/oembed").toString());
     }

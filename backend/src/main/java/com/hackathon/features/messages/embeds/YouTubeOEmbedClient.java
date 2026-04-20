@@ -32,7 +32,7 @@ public class YouTubeOEmbedClient {
 
     /** Returns Optional.empty() on any failure — never throws. */
     public Optional<OEmbedData> fetch(String sourceUrl) {
-        String url = UriComponentsBuilder.fromHttpUrl(endpoint)
+        String url = UriComponentsBuilder.fromUriString(endpoint)
                 .queryParam("url", sourceUrl)
                 .queryParam("format", "json")
                 .encode(StandardCharsets.UTF_8)
@@ -45,7 +45,10 @@ public class YouTubeOEmbedClient {
             if (resp == null) return Optional.empty();
             return Optional.of(new OEmbedData(resp.title(), resp.thumbnailUrl()));
         } catch (Exception e) {
-            log.debug("oEmbed fetch failed for {}: {}", sourceUrl, e.toString());
+            // Swallow all failures — the send path must never fail because of oEmbed.
+            // Surfaced at WARN so prolonged outages (YouTube down / rate-limiting) remain
+            // visible in production logs without breaking message send.
+            log.warn("oEmbed fetch failed for {}: {}", sourceUrl, e.toString());
             return Optional.empty();
         }
     }
