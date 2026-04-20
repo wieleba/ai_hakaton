@@ -77,6 +77,7 @@ public class DirectMessageService {
             .replyToId(replyToId)
             .build());
     eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageCreated(saved));
+    eventPublisher.publishEvent(new DmBridgeEvents.DmCreated(senderId, other, text));
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
     return saved;
@@ -147,8 +148,34 @@ public class DirectMessageService {
               .build());
     }
     eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageCreated(saved));
+    // Attachment-bearing DMs bridge their text portion (if any) to XMPP —
+    // file bytes themselves are not yet bridged.
+    if (text != null && !text.isBlank()) {
+      eventPublisher.publishEvent(new DmBridgeEvents.DmCreated(senderId, other, text));
+    }
     publishToBoth(senderId, other, DirectMessageEventEnvelope.created(toDto(saved)));
     notifyDmUnread(senderId, other, conversationId);
+    return saved;
+  }
+
+  /**
+   * Persists a DM that arrived over the XMPP bridge. Skips the friend / ban
+   * check (XMPP is outside the Chat social model) and — critically — does NOT
+   * publish {@link DmBridgeEvents.DmCreated}, otherwise the outgoing relay
+   * would bounce the message right back to XMPP and create a loop.
+   */
+  @Transactional
+  public DirectMessage receiveFromXmppBridge(UUID senderId, UUID recipientId, String text) {
+    DirectConversation conv = conversationService.getOrCreate(senderId, recipientId);
+    DirectMessage saved = directMessageRepository.save(
+        DirectMessage.builder()
+            .conversationId(conv.getId())
+            .senderId(senderId)
+            .text(text)
+            .build());
+    eventPublisher.publishEvent(new MessageEmbedEvents.DirectMessageCreated(saved));
+    publishToBoth(senderId, recipientId, DirectMessageEventEnvelope.created(toDto(saved)));
+    notifyDmUnread(senderId, recipientId, conv.getId());
     return saved;
   }
 

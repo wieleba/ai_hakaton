@@ -1,0 +1,11 @@
+-- Chat ↔ XMPP bridge: each Chat user has an auto-provisioned JID on the
+-- primary ejabberd server (chat-a.local) with this randomly-generated
+-- password. Stored plain because ejabberd's auth_password_format is "plain"
+-- and Smack needs the plaintext password to open the bridge connection.
+-- For production this would live in a secrets store or be migrated to
+-- SCRAM with ejabberd configured accordingly.
+--
+-- Nullable: usernames with characters invalid in a JID local-part (e.g.
+-- uppercase or spaces) skip provisioning and keep xmpp_password NULL,
+-- meaning "no XMPP bridge for this user".
+ALTER TABLE users ADD COLUMN xmpp_password VARCHAR(64);

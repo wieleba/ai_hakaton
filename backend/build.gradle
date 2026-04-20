@@ -45,6 +45,15 @@ dependencies {
     implementation platform('software.amazon.awssdk:bom:2.28.17')
     implementation 'software.amazon.awssdk:s3'
 
+    // Smack — XMPP client library used by the Chat↔Jabber DM bridge. The
+    // incoming bridge keeps one long-lived Smack connection per provisioned
+    // Chat user so XMPP messages to that user's JID can be converted into
+    // Chat DMs. Outgoing uses ejabberd HTTP API (no Smack connection needed).
+    implementation 'org.igniterealtime.smack:smack-java8:4.4.8'
+    implementation 'org.igniterealtime.smack:smack-tcp:4.4.8'
+    implementation 'org.igniterealtime.smack:smack-im:4.4.8'
+    implementation 'org.igniterealtime.smack:smack-extensions:4.4.8'
+
     // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 

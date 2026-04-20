@@ -76,6 +76,40 @@ server-to-server messaging.
 (`/jabber`) showing both servers' reachability, registered/online user counts,
 live S2S connection counts, and connection instructions.
 
+### Chat ↔ XMPP DM bridge
+
+Every Chat user registration auto-provisions a matching JID on `chat-a.local`
+(usernames with characters outside `a-z 0-9 . - _` are skipped because the JID
+spec is strict). The generated XMPP password is shown to the user on their
+**Account settings** page; they can paste it into any Jabber client and
+connect as themselves.
+
+Once logged in:
+
+- A DM sent from the Chat web UI also arrives at the recipient's Jabber
+  client (if they're online) — the backend publishes a `DmCreated` event,
+  consumed AFTER_COMMIT by `JabberOutgoingRelay`, which POSTs the stanza
+  to ejabberd's `/api/send_stanza` with a `<bridge xmlns='urn:chat:bridge:0'/>`
+  marker child.
+- A message sent from a Jabber client to another Chat user's JID (same
+  domain) is received by the backend's persistent Smack connection for that
+  user (resource `chat-bridge`) and delivered into the Chat DM flow.
+- Duplicate-loop avoidance: the incoming bridge drops any inbound stanza
+  carrying the `<bridge>` marker, so DMs originated from Chat UI aren't
+  re-persisted when ejabberd delivers them back through the bridge session.
+
+The bridge uses the incoming [Smack](https://www.igniterealtime.org/projects/smack/)
+client with resource priority `-64`, so if the user is online in both Psi+/etc.
+and via the web UI, their real client wins routing; the bridge picks up
+messages only when no higher-priority resource is available (and delivers them
+into the web UI the next time it's opened).
+
+Cross-domain XMPP (for example `bob@chat-b.local` messaging a Chat JID on
+`chat-a.local`) is intentionally **not** bridged — the stanza is delivered
+within XMPP and visible in the recipient's Jabber client, but not persisted
+as a Chat DM. Federation between the two ejabberd servers still works for
+pure-XMPP users.
+
 ## Other useful local URLs
 
 - Actuator health: http://localhost:8080/actuator/health

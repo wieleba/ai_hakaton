@@ -1,8 +1,10 @@
 package com.hackathon.features.users;
 
+import com.hackathon.features.jabber.JabberProvisioningService;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +13,9 @@ import org.springframework.stereotype.Service;
 public class UserService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  /** ObjectProvider so the Jabber feature stays optional — tests / profiles without
+   *  the bridge bean don't fail user registration. */
+  private final ObjectProvider<JabberProvisioningService> jabberProvisioning;
 
   public User registerUser(String email, String username, String password) {
     if (userRepository.existsByEmail(email)) {
@@ -28,7 +33,9 @@ public class UserService {
             .passwordChangedAt(OffsetDateTime.now())
             .build();
 
-    return userRepository.save(user);
+    User saved = userRepository.save(user);
+    jabberProvisioning.ifAvailable(svc -> svc.provisionFor(saved));
+    return saved;
   }
 
   public User authenticateUser(String email, String password) {
@@ -79,9 +86,10 @@ public class UserService {
   }
 
   public void deleteAccount(UUID userId) {
-    if (!userRepository.existsById(userId)) {
-      throw new IllegalArgumentException("User not found");
-    }
+    User user = userRepository
+        .findById(userId)
+        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    jabberProvisioning.ifAvailable(svc -> svc.deprovisionFor(user));
     userRepository.deleteById(userId);
   }
 }

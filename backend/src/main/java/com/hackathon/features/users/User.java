@@ -48,6 +48,12 @@ public class User {
   @Column(name = "password_changed_at", nullable = false)
   private OffsetDateTime passwordChangedAt;
 
+  // Auto-provisioned XMPP password for the Chat↔Jabber bridge. NULL when the
+  // username has characters the XMPP JID spec doesn't allow (only lowercase
+  // ASCII + digits + [-_.] are safe).
+  @Column(name = "xmpp_password")
+  private String xmppPassword;
+
   @PrePersist
   void ensurePasswordChangedAt() {
     if (passwordChangedAt == null) passwordChangedAt = OffsetDateTime.now();

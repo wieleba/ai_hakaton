@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
   boolean existsByUsername(String username);
 
+  java.util.List<User> findByXmppPasswordIsNotNull();
+
   @org.springframework.data.jpa.repository.Query(
       "SELECT u FROM User u "
           + "WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :q, '%')) "
