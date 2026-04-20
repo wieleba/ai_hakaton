@@ -101,6 +101,10 @@ services:
       - chat-network
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+      - ./frontend/vite.config.ts:/app/vite.config.ts
 
 volumes:
   postgres_data:
