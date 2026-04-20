@@ -25,3 +25,6 @@ spring:
 app:
   frontend-base-url: http://localhost:5173
   mail-from: noreply@test.local
+  oembed:
+    # Placeholder — tests set the real URL via @DynamicPropertySource.
+    youtube-url: http://localhost:0/oembed

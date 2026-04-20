@@ -43,6 +43,8 @@ app:
   # Production deployments MUST override APP_MAIL_FROM with a verified sender.
   # The .local TLD below is only usable against MailHog in dev.
   mail-from: ${APP_MAIL_FROM:noreply@chat.local}
+  oembed:
+    youtube-url: ${APP_OEMBED_YOUTUBE_URL:https://www.youtube.com/oembed}
 
 logging:
   level:
