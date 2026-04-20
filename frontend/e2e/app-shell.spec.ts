@@ -49,7 +49,7 @@ test.describe('App shell', () => {
 
     await page.getByRole('link', { name: 'Sessions' }).click();
     await page.waitForURL(/.*\/sessions$/);
-    await expect(page.locator('body')).toContainText(/feature #7/i);
+    await expect(page.locator('body')).toContainText(/active sessions/i);
 
     await page.getByRole('link', { name: 'Public Rooms' }).click();
     await page.waitForURL(/.*\/rooms$/);
