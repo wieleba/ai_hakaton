@@ -53,8 +53,21 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Slf4j
 public class JabberIncomingBridge {
 
-    /** Bridge resource priority — low so real clients win when both online. */
-    private static final int BRIDGE_PRIORITY = -64;
+    /**
+     * Bridge presence priority.
+     *
+     * <p>XMPP spec: bare-JID message routing excludes any resource with a
+     * <em>negative</em> priority (RFC 6121 §8.1.2). So a naive "set the bridge
+     * to -64 so Psi+ wins" breaks the incoming bridge entirely — the server
+     * drops bridge-destined messages when no other resource is online.
+     *
+     * <p>Using 0 makes the bridge eligible for routing whether or not the
+     * user is also online in a real client. If they are, ejabberd ties broken
+     * by most-recent-resource; the Chat UI may or may not see the carbon. A
+     * proper fix for multi-resource deployments is XEP-0280 Message Carbons
+     * on the bridge connection — tracked as a follow-up, not blocking.
+     */
+    private static final int BRIDGE_PRIORITY = 0;
 
     /** Reconnect delay for transient failures. */
     private static final long RECONNECT_DELAY_SECONDS = 5;
