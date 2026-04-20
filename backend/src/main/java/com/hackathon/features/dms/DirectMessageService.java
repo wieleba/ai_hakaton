@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
@@ -222,6 +223,40 @@ public class DirectMessageService {
   }
 
   public DirectMessageDTO toDto(DirectMessage m, UUID callerId) {
+    List<EmbedDto> embedDtos = directMessageEmbedRepository.findByDirectMessageId(m.getId()).stream()
+        .map(this::toEmbedDto)
+        .toList();
+    return toDto(m, callerId, embedDtos);
+  }
+
+  /**
+   * Batch-render a page of DMs with a single embed lookup.
+   * Replaces per-row toDto calls in history endpoints to avoid N+1.
+   * N+1 unit-test coverage is implicit via DirectMessageController integration tests.
+   */
+  public List<DirectMessageDTO> toDtos(List<DirectMessage> rows, UUID callerId) {
+    if (rows.isEmpty()) return List.of();
+    List<UUID> ids = rows.stream().map(DirectMessage::getId).toList();
+    Map<UUID, List<EmbedDto>> embedsByDm = directMessageEmbedRepository.findByDirectMessageIdIn(ids).stream()
+        .collect(Collectors.groupingBy(
+            com.hackathon.features.messages.embeds.DirectMessageEmbed::getDirectMessageId,
+            Collectors.mapping(this::toEmbedDto, Collectors.toList())));
+    return rows.stream()
+        .map(m -> toDto(m, callerId, embedsByDm.getOrDefault(m.getId(), List.of())))
+        .toList();
+  }
+
+  private EmbedDto toEmbedDto(com.hackathon.features.messages.embeds.DirectMessageEmbed e) {
+    return new EmbedDto(
+        e.getId(),
+        e.getKind(),
+        e.getCanonicalId(),
+        e.getSourceUrl(),
+        e.getTitle(),
+        e.getThumbnailUrl());
+  }
+
+  private DirectMessageDTO toDto(DirectMessage m, UUID callerId, List<EmbedDto> preloadedEmbeds) {
     String displayedText = m.getDeletedAt() == null ? m.getText() : null;
     String senderUsername = resolveUsername(m.getSenderId());
     MessagePreview preview = null;
@@ -247,15 +282,6 @@ public class DirectMessageService {
           .map(a -> new AttachmentSummary(a.getId(), a.getFilename(), a.getMimeType(), a.getSizeBytes()))
           .orElse(null);
     }
-    List<EmbedDto> embedDtos = directMessageEmbedRepository.findByDirectMessageId(m.getId()).stream()
-        .map(e -> new EmbedDto(
-            e.getId(),
-            e.getKind(),
-            e.getCanonicalId(),
-            e.getSourceUrl(),
-            e.getTitle(),
-            e.getThumbnailUrl()))
-        .toList();
     return DirectMessageDTO.builder()
         .id(m.getId())
         .conversationId(m.getConversationId())
@@ -269,7 +295,7 @@ public class DirectMessageService {
         .replyTo(preview)
         .reactions(buildReactions(m.getId(), callerId))
         .attachment(attachmentSummary)
-        .embeds(embedDtos)
+        .embeds(preloadedEmbeds)
         .build();
   }
 

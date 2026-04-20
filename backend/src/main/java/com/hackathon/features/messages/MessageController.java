@@ -37,7 +37,7 @@ public class MessageController {
       @RequestParam(required = false) UUID before,
       @RequestParam(defaultValue = "50") int limit) {
     List<Message> messages = messageService.getMessageHistory(roomId, before, limit);
-    List<ChatMessageDTO> views = messages.stream().map(messageService::toDto).toList();
+    List<ChatMessageDTO> views = messageService.toDtos(messages, null);
     return ResponseEntity.ok(views);
   }
 

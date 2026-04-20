@@ -74,7 +74,7 @@ public class DirectMessageController {
       @RequestParam(required = false) UUID before,
       @RequestParam(defaultValue = "50") int limit) {
     List<DirectMessage> messages = directMessageService.getHistory(conversationId, before, limit);
-    List<DirectMessageDTO> views = messages.stream().map(directMessageService::toDto).toList();
+    List<DirectMessageDTO> views = directMessageService.toDtos(messages, null);
     return ResponseEntity.ok(views);
   }
 
