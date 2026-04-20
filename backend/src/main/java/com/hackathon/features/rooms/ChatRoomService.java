@@ -59,14 +59,18 @@ public class ChatRoomService {
         chatRoomRepository
             .findById(roomId)
             .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+    // Existing members are always OK — short-circuit before checking visibility.
+    // ChatPage re-fires joinRoom on every mount, including for private rooms the
+    // user is already a member of via invitation; without this early return,
+    // every such visit logged a noisy "Cannot join private room" error.
+    if (roomMemberService.isMember(roomId, userId)) {
+      return;
+    }
     if (!VISIBILITY_PUBLIC.equals(room.getVisibility())) {
       throw new IllegalArgumentException("Cannot join private room");
     }
     if (roomBanRepository.existsByRoomIdAndBannedUserId(roomId, userId)) {
       throw new IllegalArgumentException("Cannot join this room");
-    }
-    if (roomMemberService.isMember(roomId, userId)) {
-      return; // idempotent for re-entry after leave
     }
     roomMemberService.addMember(roomId, userId);
   }
